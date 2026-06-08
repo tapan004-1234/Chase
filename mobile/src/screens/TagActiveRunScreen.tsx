@@ -154,9 +154,6 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
     return `${m}:${sec.toString().padStart(2, '0')}`
   }
 
-  const myLabel       = myRole === 'police' ? params.lobbyCode : opponentProfile.username
-  const opponentLabel = myRole === 'police' ? opponentProfile.username : params.lobbyCode
-
   return (
     <View style={s.root}>
       {/* Full-screen map */}

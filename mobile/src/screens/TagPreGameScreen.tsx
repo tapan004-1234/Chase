@@ -250,7 +250,7 @@ function PlayerRow({
         <Text style={pr.roleLabel}>{role}</Text>
         {profile
           ? <Text style={pr.name}>{profile.username}
-              <Text style={pr.rating}> ({role === 'POLICE' ? profile.tag_rating : profile.tag_rating})</Text>
+              <Text style={pr.rating}> ({profile.tag_rating})</Text>
             </Text>
           : <Text style={pr.empty}>Waiting…</Text>
         }
