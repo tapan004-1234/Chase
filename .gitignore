@@ -1,0 +1,17 @@
+# Claude Code tooling — not project source
+.claude/
+
+# Node / Expo
+mobile/node_modules/
+mobile/.expo/
+mobile/android/
+mobile/ios/
+
+# Env files
+mobile/.env
+mobile/.env.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
