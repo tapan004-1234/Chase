@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "android-design-guidelines": {
+      "source": "ehmo/platform-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/android/SKILL.md",
+      "computedHash": "2a5ba130841ec7ec95d0b86e47036fdc8d6b095fae01be06be7e46d7b901b802"
+    },
+    "ios-design-guidelines": {
+      "source": "ehmo/platform-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ios/SKILL.md",
+      "computedHash": "7b00786cd29d773c9b02b0d8a75729b86926c01fe5feca67c375dea5924f58af"
+    },
+    "watchos-design-guidelines": {
+      "source": "ehmo/platform-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/watchos/SKILL.md",
+      "computedHash": "1d081f9ab5393d74b10cb4c0591f55f98d828f9984260555ab0a4f36b844ed02"
+    },
+    "web-design-guidelines": {
+      "source": "ehmo/platform-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web/SKILL.md",
+      "computedHash": "388c65902b590fea11eca528e06bb36725a7e2ed6ab79e14b1a26c6a77ba593c"
+    }
+  }
+}

@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chase — Design System v1.1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:         #0A0A0A;
+      --surface:    #161616;
+      --card:       #161616;
+      --card-deep:  #1A1A1A;
+      --border:     #2A2A2A;
+      --primary:    #3D7BFF;
+      --you:        #C5FF40;
+      --red:        #FF3B3B;
+      --orange:     #F97316;
+      --green:      #22C55E;
+      --text:       #FFFFFF;
+      --text-sub:   #8B8B8B;
+      --text-muted: #4A4550;
+      --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-full: 9999px;
+      --sp-xs:4px; --sp-sm:8px; --sp-md:16px; --sp-lg:24px; --sp-xl:32px;
+      --f-disp: 'Barlow Condensed', sans-serif;
+      --f-body: 'Geist', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #050505; color: var(--text); font-family: var(--f-body); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    .page { max-width:1400px; margin:0 auto; padding:60px 40px; }
+    .section { margin-bottom:80px; }
+    .section-label { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:24px; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:80px; padding-bottom:32px; border-bottom:1px solid var(--border); }
+    .wordmark { font-family:var(--f-disp); font-weight:900; font-size:48px; letter-spacing:-1px; color:var(--text); line-height:1; }
+    .wordmark span { color:var(--primary); }
+    .north-star { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-lg) var(--sp-xl); margin-bottom:80px; display:flex; align-items:center; gap:var(--sp-lg); }
+    .north-star-label { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; }
+    .north-star-text { font-family:var(--f-disp); font-size:22px; font-weight:700; color:var(--text); }
+    .phones { display:flex; gap:28px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+    .phone { width:300px; flex-shrink:0; }
+    .phone-label { font-size:10px; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; text-align:center; margin-bottom:14px; }
+    .phone-frame { border:2px solid var(--border); border-radius:32px; overflow:hidden; }
+    .phone-notch { height:40px; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+    .phone-pill { width:90px; height:5px; background:#222; border-radius:3px; }
+    .phone-content { min-height:550px; position:relative; padding-bottom:76px; overflow:hidden; }
+    /* colors */
+    .bg-dark { background:var(--bg); }
+    .bg-red { background:var(--red); }
+    .bg-orange { background:var(--orange); }
+    .bg-green { background:var(--green); }
+    .bg-blue { background:var(--primary); }
+    /* shared phone UI */
+    .phone-header { display:flex; justify-content:space-between; align-items:center; padding:10px var(--sp-md) 0; }
+    .back-btn { width:34px; height:34px; border-radius:var(--r-full); background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:16px; }
+    .vs-chip { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); border-radius:var(--r-full); padding:5px 10px; }
+    .vs-dot { width:6px; height:6px; border-radius:50%; background:var(--primary); }
+    .vs-name { font-size:11px; font-weight:600; color:var(--text); }
+    .phone-footer { position:absolute; bottom:0; left:0; right:0; padding:8px var(--sp-md) 18px; }
+    /* === MAP === */
+    .map-wrap { margin:var(--sp-sm) var(--sp-md); border-radius:var(--r-md); overflow:hidden; height:200px; background:#0E1117; position:relative; border:1px solid var(--border); }
+    .map-svg { width:100%; height:100%; }
+    /* === PT BAR === */
+    .pt-bar-wrap { display:flex; margin:var(--sp-sm) var(--sp-md) 0; gap:2px; border-radius:var(--r-full); overflow:hidden; height:8px; }
+    .pt-p { background:var(--red); height:100%; }
+    .pt-t { background:var(--primary); height:100%; }
+    /* === STAT CARD === */
+    .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); margin:var(--sp-sm) var(--sp-md) 0; padding:var(--sp-md); }
+    .stat-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); }
+    .stat-row:last-child { border-bottom:none; }
+    .stat-row-label { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text); font-weight:500; }
+    .stat-row-val { font-family:var(--f-disp); font-weight:700; font-size:20px; color:var(--text); }
+    .stat-row-val-big { font-family:var(--f-disp); font-weight:900; font-size:24px; }
+    .dot-g { width:8px; height:8px; border-radius:50%; background:var(--green); }
+    .dot-r { width:8px; height:8px; border-radius:50%; background:var(--red); }
+    .dot-b { width:8px; height:8px; border-radius:50%; background:var(--primary); }
+    .dot-y { width:8px; height:8px; border-radius:50%; background:var(--you); }
+    /* === PRE-GAME === */
+    .pregame-player { display:flex; align-items:center; justify-content:space-between; padding:var(--sp-md); margin:var(--sp-sm) var(--sp-md) 0; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); }
+    .pregame-name { font-size:14px; font-weight:600; color:var(--text); }
+    .pregame-rating { font-size:12px; color:var(--text-sub); }
+    .pill-ready { background:var(--green); border-radius:var(--r-md); padding:6px 14px; font-size:12px; font-weight:700; }
+    .pill-notready { background:var(--primary); border-radius:var(--r-md); padding:6px 14px; font-size:12px; font-weight:700; }
+    .avatar-sq { width:36px; height:36px; border-radius:var(--r-sm); background:var(--card-deep); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0; }
+    /* === FULL-STATE SCREEN === */
+    .fullstate { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:550px; padding:var(--sp-xl); text-align:center; }
+    .fullstate-title { font-family:var(--f-disp); font-weight:900; font-size:72px; line-height:1; color:var(--text); margin-bottom:var(--sp-lg); }
+    .fullstate-delta { font-family:var(--f-disp); font-weight:900; font-size:52px; color:var(--text); opacity:0.9; }
+    .fullstate-role { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:var(--sp-sm); }
+    .fullstate-sub { font-size:14px; color:rgba(255,255,255,0.7); margin-top:var(--sp-md); font-weight:500; }
+    /* === RECOMMEND CARD === */
+    .recommend-card { display:flex; align-items:center; background:var(--card); border-radius:var(--r-lg); padding:var(--sp-md); gap:var(--sp-md); margin:var(--sp-md); }
+    .vs-box { width:52px; height:52px; border-radius:var(--r-sm); overflow:hidden; display:flex; position:relative; flex-shrink:0; }
+    .vs-half { flex:1; display:flex; align-items:center; justify-content:center; }
+    .vs-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+    .vs-text { font-size:9px; font-weight:800; color:var(--text); text-shadow:0 1px 4px rgba(0,0,0,0.8); }
+    .rec-info { flex:1; min-width:0; }
+    .rec-title { font-size:12px; font-weight:700; color:var(--text); }
+    .rec-sub { font-size:10px; color:var(--text-sub); }
+    .rec-name { font-size:14px; font-weight:600; color:var(--text); }
+    .wl { font-size:11px; }
+    .win-c { color:var(--green); font-family:var(--f-disp); font-weight:700; }
+    .loss-c { color:var(--red); font-family:var(--f-disp); font-weight:700; }
+    .sep-c { color:var(--text-muted); }
+    /* friends */
+    .friend-row { display:flex; align-items:center; padding:9px var(--sp-md); gap:10px; }
+    .friend-info { flex:1; }
+    .friend-name { font-size:13px; font-weight:600; color:var(--text); }
+    .friend-rating-txt { font-size:12px; color:var(--text-sub); font-weight:400; }
+    .challenge-btn { background:var(--primary); border-radius:var(--r-md); padding:7px 11px; font-size:12px; font-weight:700; flex-shrink:0; }
+    .mode-toggle-wrap { padding:0 var(--sp-md); margin:8px 0; }
+    .mode-toggle { display:flex; background:var(--card); border-radius:var(--r-full); padding:3px; }
+    .mode-tab { flex:1; padding:8px; text-align:center; border-radius:var(--r-full); font-size:13px; font-weight:600; color:var(--text-sub); }
+    .mode-tab.active { background:var(--card-deep); color:var(--text); }
+    .section-hdr { display:flex; align-items:center; justify-content:space-between; padding:0 var(--sp-md); margin-bottom:6px; }
+    .section-hdr-title { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-sub); }
+    .badge { background:var(--card); border-radius:var(--r-full); padding:1px 7px; font-size:10px; font-weight:700; }
+    .view-all { font-size:12px; color:var(--text-sub); }
+    .time-drum { display:flex; gap:2px; align-items:baseline; justify-content:center; padding:0 var(--sp-md); }
+    .time-item { width:44px; text-align:center; font-family:var(--f-disp); font-weight:400; font-size:13px; color:var(--text-muted); padding:7px 0; }
+    .time-item.sel { font-size:22px; font-weight:900; color:var(--text); }
+    .play-btn { background:var(--primary); border-radius:var(--r-full); padding:15px; text-align:center; font-size:17px; font-weight:700; color:var(--text); }
+    /* result */
+    .result-hdr { padding:20px var(--sp-md) var(--sp-md); text-align:center; }
+    .result-tag-l { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-bottom:4px; }
+    .result-outcome { font-family:var(--f-disp); font-weight:900; font-size:48px; line-height:1; }
+    .result-margin { font-size:12px; color:rgba(255,255,255,0.7); margin-top:2px; }
+    .result-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); }
+    .result-stat { background:var(--surface); padding:var(--sp-md); text-align:center; }
+    .result-stat-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
+    .result-stat-value { font-family:var(--f-disp); font-weight:900; font-size:24px; color:var(--text); }
+    .result-stat-unit { font-size:10px; color:var(--text-sub); }
+    .elo-row { display:flex; align-items:center; padding:var(--sp-md); gap:var(--sp-sm); border-bottom:1px solid var(--border); }
+    .elo-label { flex:1; font-size:13px; color:var(--text-sub); }
+    .elo-before { font-family:var(--f-disp); font-weight:700; font-size:18px; color:var(--text-muted); }
+    .elo-after { font-family:var(--f-disp); font-weight:900; font-size:22px; color:var(--you); }
+    .result-actions { display:flex; gap:var(--sp-sm); }
+    .btn-ghost-sm { flex:1; border:1px solid var(--border); border-radius:var(--r-full); padding:13px; text-align:center; font-size:13px; font-weight:600; }
+    .btn-primary-sm { flex:2; background:var(--primary); border-radius:var(--r-full); padding:13px; text-align:center; font-size:14px; font-weight:700; }
+    /* swatches */
+    .swatch-group { display:flex; gap:12px; flex-wrap:wrap; }
+    .swatch { flex:0 0 auto; width:100px; }
+    .swatch-color { height:72px; border-radius:var(--r-sm); margin-bottom:8px; border:1px solid rgba(255,255,255,0.08); }
+    .swatch-name { font-size:11px; font-weight:700; color:var(--text); margin-bottom:2px; }
+    .swatch-hex { font-size:11px; color:var(--text-sub); }
+    /* type */
+    .type-row { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:var(--sp-lg); margin-bottom:12px; }
+    .type-meta { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:8px; }
+    /* state grid */
+    .state-grid-6 { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+    .state-block { border-radius:var(--r-md); padding:var(--sp-md); text-align:center; }
+    .state-block-dark { background:var(--bg); border:1px solid var(--border); }
+    .state-big { font-family:var(--f-disp); font-weight:900; font-size:24px; color:var(--text); line-height:1; }
+    .state-sm { font-size:9px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:rgba(255,255,255,0.55); margin-top:4px; }
+    .state-sub { font-size:10px; color:rgba(255,255,255,0.6); margin-top:6px; line-height:1.4; }
+    /* components */
+    .comp-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    .comp-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-md); }
+    .comp-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; }
+    .btn-row { display:flex; flex-direction:column; gap:8px; }
+    .btn { padding:11px 18px; border-radius:var(--r-full); font-size:13px; font-weight:700; text-align:center; }
+    .btn-p { background:var(--primary); color:var(--text); }
+    .btn-s { border:1px solid var(--border); color:var(--text); }
+    .pill { border-radius:var(--r-full); padding:3px 10px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+    .pill-win { background:rgba(34,197,94,0.15); color:var(--green); }
+    .pill-loss { background:rgba(255,59,59,0.15); color:var(--red); }
+    .pill-blue { background:rgba(61,123,255,0.15); color:var(--primary); }
+    .pill-you { background:rgba(197,255,64,0.15); color:var(--you); }
+    /* spacing */
+    .sp-row { display:flex; align-items:center; gap:16px; margin-bottom:7px; }
+    .sp-bar { background:var(--primary); height:4px; border-radius:2px; opacity:0.6; }
+    .sp-name { font-size:11px; font-weight:700; color:var(--text-sub); width:36px; flex-shrink:0; }
+    .sp-val { font-size:11px; color:var(--text-muted); width:40px; flex-shrink:0; text-align:right; }
+    /* radius */
+    .r-row { display:flex; gap:20px; align-items:flex-end; flex-wrap:wrap; }
+    .r-demo { background:var(--surface); border:1px solid var(--border); width:56px; height:56px; }
+    .r-label { font-size:10px; font-weight:600; color:var(--text-sub); margin-top:8px; text-align:center; }
+    /* input */
+    .inp { background:var(--card); border:1px solid var(--border); border-radius:var(--r-md); padding:11px 13px; font-size:13px; color:var(--text); font-family:var(--f-body); width:100%; margin-bottom:8px; }
+    .inp-active { border-color:var(--primary); }
+    .inp-label { font-size:11px; font-weight:600; color:var(--text-sub); margin-bottom:5px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="wordmark">CHASE<span>.</span></div>
+      <div style="font-size:13px;color:var(--text-sub);margin-top:8px">Design System — v1.1 · 2026-06-07</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Aesthetic Direction</div>
+      <div style="font-size:18px;font-weight:700">Tactical Surveillance</div>
+      <div style="font-size:13px;color:var(--text-sub);margin-top:4px">Dark-only · Data-first · Dual-role proximity color</div>
+    </div>
+  </div>
+
+  <!-- NORTH STAR -->
+  <div class="north-star">
+    <div class="north-star-label">North Star</div>
+    <div class="north-star-text">The eerie tension of being right behind your friend's ghost — or having them right behind you.</div>
+  </div>
+
+  <!-- ── COLOR ─────────────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Color System</div>
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:12px;letter-spacing:0.5px">BACKGROUNDS & SURFACES</div>
+      <div class="swatch-group">
+        <div class="swatch"><div class="swatch-color" style="background:#0A0A0A"></div><div class="swatch-name">Background</div><div class="swatch-hex">#0A0A0A</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#161616"></div><div class="swatch-name">Surface</div><div class="swatch-hex">#161616</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#1A1A1A"></div><div class="swatch-name">Surface Deep</div><div class="swatch-hex">#1A1A1A</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#2A2A2A"></div><div class="swatch-name">Border</div><div class="swatch-hex">#2A2A2A</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:12px;letter-spacing:0.5px">SEMANTIC ACCENTS</div>
+      <div class="swatch-group">
+        <div class="swatch"><div class="swatch-color" style="background:#3D7BFF"></div><div class="swatch-name">Ghost / Thief</div><div class="swatch-hex">#3D7BFF</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#C5FF40;border-color:rgba(255,255,255,0.15)"></div><div class="swatch-name" style="color:#C5FF40">You / Delta</div><div class="swatch-hex">#C5FF40</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#FF3B3B"></div><div class="swatch-name">Red (Police/Bad)</div><div class="swatch-hex">#FF3B3B</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#F97316"></div><div class="swatch-name">Orange (Warning)</div><div class="swatch-hex">#F97316</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#22C55E"></div><div class="swatch-name">Green (Police+)</div><div class="swatch-hex">#22C55E</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:24px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:12px;letter-spacing:0.5px">TEXT HIERARCHY</div>
+      <div class="swatch-group">
+        <div class="swatch"><div class="swatch-color" style="background:#FFFFFF"></div><div class="swatch-name">Primary</div><div class="swatch-hex">#FFFFFF</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#8B8B8B"></div><div class="swatch-name">Secondary</div><div class="swatch-hex">#8B8B8B</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#4A4550"></div><div class="swatch-name">Muted</div><div class="swatch-hex">#4A4550</div></div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">Two-Character Grammar (Ghost Mode)</div>
+      <div style="font-size:13px;color:var(--text-sub);line-height:1.8">
+        <span style="color:var(--you);font-weight:700">Chartreuse #C5FF40</span> = You. Your pace, your delta, your identity in the race.<br>
+        <span style="color:var(--primary);font-weight:700">Blue #3D7BFF</span> = The ghost. Their pace, their data. Always.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TYPOGRAPHY ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Typography</div>
+    <div class="type-row">
+      <div class="type-meta">Barlow Condensed 900 Black — Hero Numbers</div>
+      <div style="font-family:var(--f-disp);font-weight:900;font-size:64px;line-height:1;letter-spacing:-1px">5:42 /km</div>
+      <div style="margin-top:8px;color:var(--text-sub);font-size:12px">Pace · Distance · Time · Delta · Result outcomes. Big, fast, authoritative.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Barlow Condensed 700 Bold — Secondary Stats</div>
+      <div style="font-family:var(--f-disp);font-weight:700;font-size:36px;line-height:1;color:var(--text-sub)">+127m AHEAD · W: 7 / L: 3 · 0.73Km Away</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Geist 400 Regular — Body / UI</div>
+      <div style="font-family:var(--f-body);font-size:14px;color:var(--text);line-height:1.6">Challenge @marcus — he ran this route on Tuesday and his ghost is ready to race. Accept the challenge and beat his 5:38/km pace.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Geist 600–700 — Labels / Buttons</div>
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:var(--f-body);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-sub)">GHOST ACTIVE</span>
+        <span style="font-family:var(--f-body);font-size:13px;font-weight:700">Beat →</span>
+        <span style="font-family:var(--f-body);font-size:13px;font-weight:700">Challenge</span>
+        <span style="font-family:var(--f-body);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-sub)">FRIENDS · 10</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GAME STATE: GHOST MODE ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Game State — Ghost Mode (Proximity Colors)</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:24px;line-height:1.7">Color communicates <strong style="color:var(--text)">proximity</strong>, not performance. The ghost isn't a warning system — it's a presence system. Each color means: how close is the ghost right now?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:8px">Safe — Ahead (&gt;100m)</div>
+        <div class="state-block state-block-dark">
+          <div class="state-big" style="color:var(--you)">+182m</div>
+          <div class="state-sm" style="color:var(--text-sub)">YOU'RE AHEAD</div>
+          <div class="state-sub" style="color:var(--text-muted)">Dark bg · chartreuse delta</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:8px">Warning — Closing (0–100m)</div>
+        <div class="state-block" style="background:var(--orange)">
+          <div class="state-big">+34m</div>
+          <div class="state-sm">GETTING CLOSE</div>
+          <div class="state-sub">Full-screen orange<br>They're RIGHT THERE</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:8px">Behind (&lt;0m)</div>
+        <div class="state-block" style="background:var(--red)">
+          <div class="state-big">−22m</div>
+          <div class="state-sm">GHOST PASSED YOU</div>
+          <div class="state-sub">Full-screen red<br>Not failure — a fact</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md)">
+      <strong style="color:var(--text)">Motion rule:</strong> <span style="color:var(--text-sub)">State changes are 80–120ms CUT transitions, not fades. The snap is the point — it mimics the moment something crosses you.</span>
+    </div>
+  </div>
+
+  <!-- ── GAME STATE: TAG MODE ───────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Game State — Tag Mode (Dual-Role Color System)</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:24px;line-height:1.7">
+      Tag mode has two roles: <strong style="color:var(--red)">Police (P)</strong> and <strong style="color:var(--primary)">Thief (T)</strong>. The same event shows different colors depending on your role — catching the thief is blue for police, red for the thief. Color encodes both role and outcome.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+      <!-- THIEF column -->
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--primary)"></div>
+          THIEF (T) PERSPECTIVE
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">Safe / Running</div>
+            <div class="state-block state-block-dark">
+              <div class="state-big" style="color:var(--you)">+564m</div>
+              <div class="state-sm" style="color:var(--text-sub)">ESCAPING</div>
+              <div class="state-sub" style="color:var(--text-muted)">Dark · chartreuse</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">Warning — Close</div>
+            <div class="state-block" style="background:var(--orange)">
+              <div class="state-big">−50m</div>
+              <div class="state-sm">GETTING CLOSE</div>
+              <div class="state-sub">Police closing in</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">Caught</div>
+            <div class="state-block" style="background:var(--red)">
+              <div class="state-big">BUSTED!</div>
+              <div class="state-sm">GAME OVER</div>
+              <div class="state-sub">Police caught you</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- POLICE column -->
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--red)"></div>
+          POLICE (P) PERSPECTIVE
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">Chasing / Far</div>
+            <div class="state-block state-block-dark">
+              <div class="state-big" style="color:var(--you)">−564m</div>
+              <div class="state-sm" style="color:var(--text-sub)">CHASING</div>
+              <div class="state-sub" style="color:var(--text-muted)">Dark · catch up</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">Getting Close</div>
+            <div class="state-block" style="background:var(--green)">
+              <div class="state-big">+50m</div>
+              <div class="state-sm">GETTING CLOSE</div>
+              <div class="state-sub">Almost got them</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+              <div>
+                <div style="font-size:8px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">You Won</div>
+                <div class="state-block" style="background:var(--primary)">
+                  <div style="font-family:var(--f-disp);font-weight:900;font-size:16px;color:var(--text)">BUSTED!</div>
+                  <div style="font-size:8px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:3px">GOT 'EM</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:8px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:6px">They Escaped</div>
+                <div class="state-block" style="background:var(--red)">
+                  <div style="font-family:var(--f-disp);font-weight:900;font-size:16px;color:var(--text)">ESCAPE</div>
+                  <div style="font-size:8px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:3px">LOST</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role color summary -->
+    <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md);display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-md)">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Red #FF3B3B</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.6">Bad outcome for BOTH. Thief = busted. Police = escaped. The failure color transcends role.</div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Blue #3D7BFF</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.6">Win for BOTH. Thief escaping = blue. Police catching = blue. Blue = your best outcome.</div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Orange vs Green</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.6">Orange = Thief warning (police close). Green = Police "getting close" (thief in range). Role-specific proximity.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN MOCKUPS ─────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Screen Mockups — Full Screen System</div>
+
+    <!-- Row 1: Home + Pre-game + Ghost Play + Ghost Active -->
+    <div style="margin-bottom:12px;font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:0.5px">GHOST MODE</div>
+    <div class="phones" style="margin-bottom:48px">
+
+      <!-- HOME SCREEN -->
+      <div class="phone">
+        <div class="phone-label">Home Screen</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark">
+            <div class="recommend-card">
+              <div class="vs-box">
+                <div class="vs-half" style="background:var(--red)"><div style="width:20px;height:20px;border-radius:3px;background:rgba(255,255,255,0.2)"></div></div>
+                <div class="vs-half" style="background:var(--primary)"><div style="width:20px;height:20px;border-radius:3px;background:rgba(255,255,255,0.2)"></div></div>
+                <div class="vs-label"><span class="vs-text">VS</span></div>
+              </div>
+              <div class="rec-info">
+                <div class="rec-title">Recommended Match</div>
+                <div class="rec-sub">Recent Opponent</div>
+                <div class="rec-name">@marcus <span style="color:var(--text-sub);font-weight:400;font-size:12px">(1284)</span></div>
+                <div class="wl"><span class="win-c">4W</span><span class="sep-c"> / </span><span class="loss-c">3L</span><span class="sep-c"> / 0D</span></div>
+              </div>
+            </div>
+            <div class="mode-toggle-wrap">
+              <div class="mode-toggle"><div class="mode-tab">Tag</div><div class="mode-tab active">Ghost</div></div>
+            </div>
+            <div class="section-hdr" style="margin-top:10px">
+              <div style="display:flex;align-items:center;gap:6px"><span class="section-hdr-title">Friends</span><span class="badge">3</span></div>
+              <span class="view-all">View All</span>
+            </div>
+            <div class="friend-row">
+              <div class="avatar-sq" style="color:var(--primary)">M</div>
+              <div class="friend-info"><div class="friend-name">@marcus <span class="friend-rating-txt">(1284)</span></div><div class="wl"><span class="win-c">4W</span><span class="sep-c"> / </span><span class="loss-c">3L</span></div></div>
+              <div class="challenge-btn">Challenge</div>
+            </div>
+            <div class="friend-row">
+              <div class="avatar-sq" style="color:var(--you)">J</div>
+              <div class="friend-info"><div class="friend-name">@jasmine <span class="friend-rating-txt">(1201)</span></div><div class="wl"><span class="win-c">2W</span><span class="sep-c"> / </span><span class="loss-c">5L</span></div></div>
+              <div class="challenge-btn">Challenge</div>
+            </div>
+            <div style="margin-top:10px;padding:0 var(--sp-md)">
+              <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-sub);margin-bottom:4px">TIME</div>
+              <div class="time-drum"><div class="time-item">8</div><div class="time-item">9</div><div class="time-item sel">10<div style="font-size:8px;font-weight:400;color:var(--text-sub)">min</div></div><div class="time-item">11</div><div class="time-item">12</div></div>
+            </div>
+            <div class="phone-footer"><div class="play-btn">Play</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRE-GAME SCREEN -->
+      <div class="phone">
+        <div class="phone-label">Pre-Game (Lobby)</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark">
+            <div class="pregame-player">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar-sq" style="color:var(--you)">T</div>
+                <div><div class="pregame-name">TAPAN <span style="color:var(--text-sub);font-weight:400">(997)</span></div><div style="font-size:10px;color:var(--text-sub)">You</div></div>
+              </div>
+              <div class="pill-notready">Not Ready</div>
+            </div>
+            <div class="pt-bar-wrap"><div class="pt-p" style="flex:1"></div><div class="pt-t" style="flex:2"></div></div>
+            <div class="stat-card" style="margin-top:8px">
+              <div class="stat-row">
+                <span class="stat-row-label">Time Elapsed</span>
+                <span class="stat-row-val">09:32</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label"><div class="dot-g"></div> vs Ghost</span>
+                <span class="stat-row-val-big" style="color:var(--green)">+01:35:43</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label"><div class="dot-r"></div> Distance</span>
+                <span class="stat-row-val-big" style="color:var(--red)">0.73 km</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label" style="font-size:13px">👥 Players</span>
+                <span class="stat-row-val-big">2/5</span>
+              </div>
+            </div>
+            <div class="pregame-player" style="margin-top:0;border-top:none">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar-sq" style="color:var(--primary)">A</div>
+                <div><div class="pregame-name">ALEX <span style="color:var(--text-sub);font-weight:400">(767)</span></div><div style="font-size:10px;color:var(--text-sub)">Opponent</div></div>
+              </div>
+              <div class="pill-ready">Ready</div>
+            </div>
+            <div class="phone-footer"><div class="play-btn">Start</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GHOST PLAY SCREEN with MAP -->
+      <div class="phone">
+        <div class="phone-label">Ghost — Active Run (Map)</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark">
+            <div class="phone-header">
+              <div class="back-btn">←</div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">PERRY (997) <span style="color:var(--text-muted)">VS</span> ALEX (767)</div>
+              <div style="width:34px"></div>
+            </div>
+            <!-- Map -->
+            <div class="map-wrap">
+              <svg class="map-svg" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+                <!-- Grid streets -->
+                <defs>
+                  <pattern id="grid" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+                    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1A2030" stroke-width="1"/>
+                  </pattern>
+                </defs>
+                <rect width="300" height="200" fill="#0E1117"/>
+                <rect width="300" height="200" fill="url(#grid)"/>
+                <!-- City blocks -->
+                <rect x="5" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="35" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="65" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="95" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="125" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="155" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="185" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="215" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="245" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="275" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="5" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="35" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="65" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="95" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="125" y="35" width="50" height="20" fill="#141B26" rx="2"/>
+                <rect x="185" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="215" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="245" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="5" y="65" width="20" height="50" fill="#141B26" rx="2"/>
+                <rect x="35" y="65" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="65" y="65" width="50" height="50" fill="#141B26" rx="2"/>
+                <rect x="125" y="65" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="155" y="65" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="185" y="65" width="50" height="50" fill="#141B26" rx="2"/>
+                <rect x="245" y="65" width="20" height="50" fill="#141B26" rx="2"/>
+                <rect x="5" y="125" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="35" y="125" width="50" height="20" fill="#141B26" rx="2"/>
+                <rect x="95" y="125" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="125" y="125" width="50" height="20" fill="#141B26" rx="2"/>
+                <rect x="185" y="125" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="215" y="125" width="50" height="20" fill="#141B26" rx="2"/>
+                <rect x="275" y="125" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="5" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="35" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="65" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="95" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="125" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="155" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="185" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="215" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="245" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="275" y="155" width="20" height="20" fill="#141B26" rx="2"/>
+                <!-- Route - ghost (red) -->
+                <polyline points="150,180 150,120 210,120 210,60 150,60 150,30 90,30 90,90 150,90 150,120" fill="none" stroke="#FF3B3B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Route - you (chartreuse) -->
+                <polyline points="150,180 150,120 210,120 210,60 150,60 150,30 90,30 90,90" fill="none" stroke="#C5FF40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Ghost dot (blue) -->
+                <circle cx="150" cy="60" r="5" fill="#3D7BFF"/>
+                <circle cx="150" cy="60" r="8" fill="none" stroke="#3D7BFF" stroke-width="1.5" opacity="0.4"/>
+                <!-- You dot (white) -->
+                <circle cx="90" cy="90" r="5" fill="white"/>
+                <circle cx="90" cy="90" r="9" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
+              </svg>
+            </div>
+            <!-- PT bar -->
+            <div class="pt-bar-wrap"><div class="pt-p" style="width:35%"></div><div class="pt-t" style="width:65%"></div></div>
+            <!-- Stats -->
+            <div class="stat-card">
+              <div class="stat-row">
+                <span class="stat-row-label">Time Elapsed</span>
+                <span class="stat-row-val">09:32</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label"><div class="dot-g"></div> vs Ghost</span>
+                <span class="stat-row-val-big" style="color:var(--you)">+01:35</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label"><div class="dot-r"></div> Distance</span>
+                <span class="stat-row-val-big" style="color:var(--red)">2.14 km</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- POST-RUN RESULT -->
+      <div class="phone">
+        <div class="phone-label">Post-Run Result</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content" style="background:var(--bg);padding-bottom:0">
+            <div class="result-hdr" style="background:var(--primary)">
+              <div class="result-tag-l">GHOST RACE · VS @MARCUS</div>
+              <div class="result-outcome">YOU WON</div>
+              <div class="result-margin">by 127m · 00:43 ahead at finish</div>
+            </div>
+            <div class="result-stats">
+              <div class="result-stat"><div class="result-stat-label">Avg Pace</div><div class="result-stat-value">5:42</div><div class="result-stat-unit">/km</div></div>
+              <div class="result-stat"><div class="result-stat-label">Distance</div><div class="result-stat-value">4.21</div><div class="result-stat-unit">km</div></div>
+              <div class="result-stat"><div class="result-stat-label">Duration</div><div class="result-stat-value">24:04</div><div class="result-stat-unit">mm:ss</div></div>
+            </div>
+            <div class="elo-row">
+              <div class="elo-label">Ghost Rating</div>
+              <div class="elo-before">1241</div>
+              <span style="color:var(--text-muted)"> → </span>
+              <div class="elo-after">+18 · 1259</div>
+            </div>
+            <div style="padding:var(--sp-md)">
+              <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">@marcus Ghost</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md);display:flex;gap:var(--sp-md)">
+                <div style="flex:1;text-align:center"><div style="font-family:var(--f-disp);font-weight:900;font-size:22px;color:var(--primary)">5:52</div><div style="font-size:10px;color:var(--text-muted)">/km</div></div>
+                <div style="flex:1;text-align:center"><div style="font-family:var(--f-disp);font-weight:900;font-size:22px;color:var(--primary)">4.08</div><div style="font-size:10px;color:var(--text-muted)">km</div></div>
+                <div style="flex:1;text-align:center"><div style="font-family:var(--f-disp);font-weight:900;font-size:22px;color:var(--primary)">24:47</div><div style="font-size:10px;color:var(--text-muted)">mm:ss</div></div>
+              </div>
+            </div>
+            <div style="padding:var(--sp-sm) var(--sp-md) 20px" class="result-actions">
+              <div class="btn-ghost-sm">Share</div>
+              <div class="btn-primary-sm">Challenge Again</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Tag Mode Screens -->
+    <div style="margin-bottom:12px;font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:0.5px">TAG MODE — ACTIVE RUN SCREENS</div>
+    <div class="phones">
+
+      <!-- TAG PLAY: Thief Safe -->
+      <div class="phone">
+        <div class="phone-label">Tag — Thief Escaping</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark">
+            <div class="phone-header">
+              <div class="back-btn">←</div>
+              <div class="vs-chip"><div class="vs-dot" style="background:var(--primary)"></div><span class="vs-name">THIEF · You</span></div>
+              <div style="width:34px"></div>
+            </div>
+            <div class="map-wrap">
+              <svg class="map-svg" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+                <rect width="300" height="200" fill="#0E1117"/>
+                <rect width="300" height="200" fill="url(#grid)"/>
+                <rect x="5" y="5" width="20" height="20" fill="#141B26" rx="2"/><rect x="35" y="5" width="20" height="20" fill="#141B26" rx="2"/><rect x="65" y="5" width="20" height="20" fill="#141B26" rx="2"/><rect x="95" y="5" width="20" height="20" fill="#141B26" rx="2"/><rect x="125" y="5" width="20" height="20" fill="#141B26" rx="2"/><rect x="155" y="5" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="5" y="35" width="50" height="20" fill="#141B26" rx="2"/><rect x="65" y="35" width="20" height="20" fill="#141B26" rx="2"/><rect x="95" y="35" width="50" height="20" fill="#141B26" rx="2"/><rect x="155" y="35" width="20" height="20" fill="#141B26" rx="2"/>
+                <rect x="5" y="65" width="20" height="50" fill="#141B26" rx="2"/><rect x="35" y="65" width="50" height="50" fill="#141B26" rx="2"/><rect x="95" y="65" width="20" height="20" fill="#141B26" rx="2"/><rect x="125" y="65" width="50" height="50" fill="#141B26" rx="2"/>
+                <rect x="5" y="125" width="20" height="20" fill="#141B26" rx="2"/><rect x="35" y="125" width="20" height="20" fill="#141B26" rx="2"/><rect x="65" y="125" width="50" height="20" fill="#141B26" rx="2"/><rect x="125" y="125" width="20" height="20" fill="#141B26" rx="2"/>
+                <!-- Thief route (blue) -->
+                <polyline points="30,180 30,90 90,90 90,30 150,30 150,90 180,90" fill="none" stroke="#3D7BFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Police route (red, far behind) -->
+                <polyline points="30,180 30,90 90,90" fill="none" stroke="#FF3B3B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Thief (you) dot — white -->
+                <circle cx="180" cy="90" r="5" fill="white"/>
+                <circle cx="180" cy="90" r="9" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
+                <!-- Police dot (red, far) -->
+                <circle cx="90" cy="90" r="4" fill="#FF3B3B"/>
+              </svg>
+            </div>
+            <div class="pt-bar-wrap"><div class="pt-p" style="width:30%"></div><div class="pt-t" style="width:70%"></div></div>
+            <div class="stat-card">
+              <div class="stat-row">
+                <span class="stat-row-label">Time Elapsed</span>
+                <span class="stat-row-val">09:32</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label"><div class="dot-b"></div> Police Gap</span>
+                <span class="stat-row-val-big" style="color:var(--you)">+564m</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-row-label"><div class="dot-r"></div> Distance Run</span>
+                <span class="stat-row-val-big" style="color:var(--red)">2.14 km</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAG PLAY: Thief Warning -->
+      <div class="phone">
+        <div class="phone-label">Tag — Thief Warning</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-orange">
+            <div class="phone-header">
+              <div class="back-btn" style="background:rgba(0,0,0,0.15)">←</div>
+              <div class="vs-chip" style="background:rgba(0,0,0,0.15)"><div class="vs-dot" style="background:#fff"></div><span class="vs-name">GETTING CLOSE</span></div>
+              <div style="width:34px"></div>
+            </div>
+            <div style="padding:var(--sp-lg) var(--sp-md);text-align:center">
+              <div style="font-family:var(--f-disp);font-weight:900;font-size:72px;color:var(--text);line-height:1">−50m</div>
+              <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-top:4px">POLICE CLOSING IN</div>
+            </div>
+            <div class="stat-card" style="margin-top:0;background:rgba(0,0,0,0.15);border-color:rgba(0,0,0,0.1)">
+              <div class="stat-row" style="border-color:rgba(0,0,0,0.1)">
+                <span class="stat-row-label">Time Elapsed</span>
+                <span class="stat-row-val">14:21</span>
+              </div>
+              <div class="stat-row" style="border-color:rgba(0,0,0,0.1)">
+                <span class="stat-row-label">Police Gap</span>
+                <span class="stat-row-val-big">−50m</span>
+              </div>
+              <div class="stat-row" style="border-color:rgba(0,0,0,0.1)">
+                <span class="stat-row-label">Distance Run</span>
+                <span class="stat-row-val-big">3.61 km</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAG PLAY: Thief Busted -->
+      <div class="phone">
+        <div class="phone-label">Tag — Thief Busted</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-red">
+            <div class="fullstate">
+              <div class="fullstate-role">THIEF</div>
+              <div class="fullstate-title">BUSTED!</div>
+              <div class="fullstate-delta">0</div>
+              <div class="fullstate-sub">Police caught you<br>at 4.23 km · 18:41</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAG PLAY: Police Getting Close -->
+      <div class="phone">
+        <div class="phone-label">Tag — Police Closing In</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-green">
+            <div class="phone-header">
+              <div class="back-btn" style="background:rgba(0,0,0,0.15)">←</div>
+              <div class="vs-chip" style="background:rgba(0,0,0,0.15)"><div class="vs-dot" style="background:#fff"></div><span class="vs-name">POLICE · You</span></div>
+              <div style="width:34px"></div>
+            </div>
+            <div style="padding:var(--sp-lg) var(--sp-md);text-align:center">
+              <div style="font-family:var(--f-disp);font-weight:900;font-size:72px;color:var(--text);line-height:1">+50m</div>
+              <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-top:4px">GETTING CLOSE</div>
+            </div>
+            <div class="stat-card" style="margin-top:0;background:rgba(0,0,0,0.1);border-color:rgba(0,0,0,0.1)">
+              <div class="stat-row" style="border-color:rgba(0,0,0,0.1)">
+                <span class="stat-row-label">Time Elapsed</span>
+                <span class="stat-row-val">14:21</span>
+              </div>
+              <div class="stat-row" style="border-color:rgba(0,0,0,0.1)">
+                <span class="stat-row-label">Gap to Thief</span>
+                <span class="stat-row-val-big">+50m</span>
+              </div>
+              <div class="stat-row" style="border-color:rgba(0,0,0,0.1)">
+                <span class="stat-row-label">Distance Run</span>
+                <span class="stat-row-val-big">3.58 km</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAG PLAY: Police Won (Busted Thief) -->
+      <div class="phone">
+        <div class="phone-label">Tag — Police Wins (Busted)</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-blue">
+            <div class="fullstate">
+              <div class="fullstate-role">POLICE</div>
+              <div class="fullstate-title">BUSTED!</div>
+              <div class="fullstate-delta">+0m</div>
+              <div class="fullstate-sub">You caught the thief<br>at 4.23 km · 18:41</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAG PLAY: Police Lost (Thief Escaped) -->
+      <div class="phone">
+        <div class="phone-label">Tag — Thief Escaped (Police POV)</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-red">
+            <div class="fullstate">
+              <div class="fullstate-role">POLICE</div>
+              <div class="fullstate-title">ESCAPE</div>
+              <div class="fullstate-delta">+564m</div>
+              <div class="fullstate-sub">Thief got away<br>Time expired · 10:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── COMPONENTS ─────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Component Library</div>
+    <div class="comp-grid">
+      <div class="comp-card">
+        <div class="comp-label">Buttons</div>
+        <div class="btn-row">
+          <div class="btn btn-p">Play</div>
+          <div class="btn" style="background:var(--you);color:#000">Your Pace: 5:42</div>
+          <div class="btn" style="background:var(--red);color:var(--text)">Stop Run</div>
+          <div class="btn btn-s">Share Result</div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-label">Inputs</div>
+        <div class="inp-label">Username</div>
+        <input class="inp" placeholder="@tapan" readonly />
+        <div class="inp-label">Search Friends (focused)</div>
+        <input class="inp inp-active" value="@mar" readonly />
+      </div>
+      <div class="comp-card">
+        <div class="comp-label">Status Badges</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          <span class="pill pill-win">4W</span>
+          <span class="pill pill-loss">3L</span>
+          <span class="pill pill-blue">Ghost</span>
+          <span class="pill pill-you">+182m</span>
+        </div>
+        <div class="comp-label">Incoming Challenge</div>
+        <div style="background:var(--card);border-radius:var(--r-md);padding:var(--sp-sm) var(--sp-md);display:flex;align-items:center;gap:10px">
+          <div class="avatar-sq" style="color:var(--primary)">J</div>
+          <div style="flex:1"><div class="friend-name">@jasmine</div><div style="font-size:11px;color:var(--text-sub)">4.2km · 5:38/km</div></div>
+          <div style="background:var(--primary);border-radius:var(--r-md);padding:7px 10px;font-size:12px;font-weight:700">Beat →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SPACING ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Spacing — 8pt Base</div>
+    <div style="max-width:480px">
+      <div class="sp-row"><div class="sp-name">xs</div><div style="flex:1"><div class="sp-bar" style="width:4px"></div></div><div class="sp-val">4px</div></div>
+      <div class="sp-row"><div class="sp-name">sm</div><div style="flex:1"><div class="sp-bar" style="width:8px"></div></div><div class="sp-val">8px</div></div>
+      <div class="sp-row"><div class="sp-name">md</div><div style="flex:1"><div class="sp-bar" style="width:16px"></div></div><div class="sp-val">16px</div></div>
+      <div class="sp-row"><div class="sp-name">lg</div><div style="flex:1"><div class="sp-bar" style="width:24px"></div></div><div class="sp-val">24px</div></div>
+      <div class="sp-row"><div class="sp-name">xl</div><div style="flex:1"><div class="sp-bar" style="width:32px"></div></div><div class="sp-val">32px</div></div>
+      <div class="sp-row"><div class="sp-name">2xl</div><div style="flex:1"><div class="sp-bar" style="width:48px"></div></div><div class="sp-val">48px</div></div>
+    </div>
+  </div>
+
+  <!-- ── RADIUS ─────────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Border Radius</div>
+    <div class="r-row">
+      <div><div class="r-demo" style="border-radius:8px"></div><div class="r-label">sm · 8px</div></div>
+      <div><div class="r-demo" style="border-radius:12px"></div><div class="r-label">md · 12px</div></div>
+      <div><div class="r-demo" style="border-radius:16px"></div><div class="r-label">lg · 16px</div></div>
+      <div><div class="r-demo" style="border-radius:24px"></div><div class="r-label">xl · 24px</div></div>
+      <div><div class="r-demo" style="border-radius:9999px"></div><div class="r-label">full</div></div>
+    </div>
+  </div>
+
+  <!-- ── MOTION ─────────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Motion System</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:800px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md)">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Game State Change</div>
+        <div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:3px">80–120ms · CUT</div>
+        <div style="font-size:12px;color:var(--text-sub)">The snap IS the point. It mimics the moment something crosses you. Applies to both Ghost proximity states and Tag mode busted/escape moments.</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md)">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Screen Transitions</div>
+        <div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:3px">150–250ms · ease-out</div>
+        <div style="font-size:12px;color:var(--text-sub)">Enter on ease-out, exit on ease-in. Never slow. This is a running app.</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md)">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Live Data Numbers</div>
+        <div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:3px">No animation</div>
+        <div style="font-size:12px;color:var(--text-sub)">Pace, distance, delta update instantly. Animated live data creates perceived lag at speed.</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md)">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Map Route Draw</div>
+        <div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:3px">Real-time append</div>
+        <div style="font-size:12px;color:var(--text-sub)">Route extends as you run. Ghost route shown as-is. No animated redraw — the trail is a record, not a presentation.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATS + PROFILE SCREENS ──────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Stats & Profile Screens</div>
+    <div class="phones">
+
+      <!-- STATS SCREEN -->
+      <div class="phone">
+        <div class="phone-label">Stats Screen</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark" style="padding-bottom:60px">
+
+            <!-- top row: avatar + compare -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px var(--sp-md) 0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar-sq" style="width:40px;height:40px;border-radius:10px;color:var(--you)">T</div>
+                <div style="font-size:15px;font-weight:700;color:var(--text)">Tapan</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;background:var(--card);border-radius:var(--r-md);padding:7px 10px">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">Compare</span>
+              </div>
+            </div>
+
+            <!-- period filter -->
+            <div style="display:flex;gap:var(--sp-md);padding:12px var(--sp-md) 0;overflow:hidden">
+              <span style="font-size:12px;color:var(--text-sub);white-space:nowrap">7 days</span>
+              <span style="font-size:12px;color:var(--text-sub);white-space:nowrap">30 days</span>
+              <div style="white-space:nowrap">
+                <span style="font-size:12px;color:var(--text);font-weight:700">90 days</span>
+                <div style="height:2px;background:var(--text);border-radius:1px;margin-top:4px"></div>
+              </div>
+              <span style="font-size:12px;color:var(--text-sub);white-space:nowrap">1 year</span>
+              <span style="font-size:12px;color:var(--text-sub);white-space:nowrap">All Time</span>
+            </div>
+
+            <!-- stat tiles -->
+            <div style="display:flex;gap:var(--sp-sm);padding:var(--sp-md);padding-bottom:0">
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font-size:22px;color:var(--red)">🏃</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:36px;color:var(--text);line-height:1">1441</div>
+                <div style="font-size:12px;color:var(--text-sub)">Tags</div>
+              </div>
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font-size:22px;color:var(--primary)">⏱</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:36px;color:var(--text);line-height:1">276</div>
+                <div style="font-size:12px;color:var(--text-sub)">Ghosts</div>
+              </div>
+            </div>
+
+            <!-- history tab toggle -->
+            <div style="display:flex;padding:var(--sp-md);padding-bottom:var(--sp-sm);gap:var(--sp-sm)">
+              <div style="background:var(--card);border-radius:var(--r-md);padding:10px var(--sp-md)">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">Tag History</span>
+              </div>
+              <div style="padding:10px var(--sp-md)">
+                <span style="font-size:13px;font-weight:600;color:var(--text-muted)">Ghost History</span>
+              </div>
+            </div>
+
+            <!-- chart -->
+            <div style="margin:0 var(--sp-md);background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md) var(--sp-sm) var(--sp-sm);height:110px;display:flex;align-items:flex-end;gap:var(--sp-sm)">
+              <!-- Y axis -->
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:80px;padding-right:4px">
+                <span style="font-size:9px;color:var(--text-muted)">759</span>
+                <span style="font-size:9px;color:var(--text-muted)">559</span>
+                <span style="font-size:9px;color:var(--text-muted)">359</span>
+                <span style="font-size:9px;color:var(--text-muted)">159</span>
+              </div>
+              <!-- bars + curve (SVG) -->
+              <div style="flex:1;height:80px;position:relative">
+                <svg width="100%" height="80" viewBox="0 0 220 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                  <!-- bars -->
+                  <rect x="0"   y="55" width="28" height="25" fill="#3D7BFF" opacity="0.25" rx="2"/>
+                  <rect x="32"  y="45" width="28" height="35" fill="#3D7BFF" opacity="0.25" rx="2"/>
+                  <rect x="64"  y="30" width="28" height="50" fill="#3D7BFF" opacity="0.30" rx="2"/>
+                  <rect x="96"  y="10" width="28" height="70" fill="#3D7BFF" opacity="0.30" rx="2"/>
+                  <rect x="128" y="20" width="28" height="60" fill="#3D7BFF" opacity="0.35" rx="2"/>
+                  <rect x="160" y="35" width="28" height="45" fill="#3D7BFF" opacity="0.35" rx="2"/>
+                  <rect x="192" y="25" width="28" height="55" fill="#3D7BFF" opacity="0.40" rx="2"/>
+                  <!-- sparkline -->
+                  <polyline points="14,55 46,45 78,28 110,10 142,20 174,34 206,24" fill="none" stroke="#3D7BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="206" cy="24" r="3" fill="#C5FF40"/>
+                </svg>
+                <!-- km label + legend -->
+                <div style="position:absolute;bottom:-28px;right:0;display:flex;align-items:center;gap:5px">
+                  <div style="width:7px;height:7px;border-radius:50%;background:var(--primary)"></div>
+                  <span style="font-size:10px;color:var(--text-sub)">90 Days</span>
+                  <span style="font-size:10px;color:var(--green);font-weight:700">↑19.6%</span>
+                  <span style="font-size:10px;color:var(--text-sub)">235 Km</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- km total -->
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:var(--sp-lg) var(--sp-md) var(--sp-sm)">
+              <div style="font-family:var(--f-disp);font-weight:900;font-size:44px;color:var(--text);line-height:1">543 Km</div>
+            </div>
+
+            <!-- tab bar -->
+            <div style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);display:flex;padding:10px 0 16px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">🏠</span>
+                <span style="font-size:10px;color:var(--text-sub)">Home</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">📊</span>
+                <span style="font-size:10px;color:var(--text);font-weight:700">Stats</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">👤</span>
+                <span style="font-size:10px;color:var(--text-sub)">Alex</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE SCREEN -->
+      <div class="phone">
+        <div class="phone-label">Profile Screen</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark" style="padding-bottom:60px">
+
+            <!-- top row: ··· -->
+            <div style="display:flex;justify-content:flex-end;padding:10px var(--sp-md) 0">
+              <span style="color:var(--text);font-size:18px;font-weight:700">···</span>
+            </div>
+
+            <!-- identity -->
+            <div style="display:flex;align-items:center;gap:var(--sp-md);padding:var(--sp-sm) var(--sp-md) var(--sp-md)">
+              <div style="width:64px;height:64px;border-radius:14px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--you);flex-shrink:0">T</div>
+              <div>
+                <div style="font-size:22px;font-weight:700;color:var(--text)">Tapan</div>
+                <div style="font-size:12px;color:var(--text-sub);margin-top:2px">Joined January 24, 2025</div>
+              </div>
+            </div>
+
+            <!-- action row -->
+            <div style="display:flex;gap:var(--sp-sm);padding:0 var(--sp-md) var(--sp-md)">
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:11px var(--sp-md);display:flex;align-items:center;justify-content:center;gap:6px">
+                <span style="font-size:14px">👤</span>
+                <span style="font-size:13px;font-weight:600;color:var(--text)">Add Friends</span>
+              </div>
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:11px var(--sp-md);display:flex;align-items:center;justify-content:center">
+                <span style="font-size:16px">↗</span>
+              </div>
+            </div>
+
+            <!-- rating cards -->
+            <div style="display:flex;gap:var(--sp-sm);padding:0 var(--sp-md) var(--sp-md)">
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font-size:11px;color:var(--text-sub);font-weight:600">Tag</div>
+                <div style="font-size:24px;color:var(--red)">🏃</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:36px;color:var(--text);line-height:1">1539</div>
+              </div>
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font-size:11px;color:var(--text-sub);font-weight:600">Ghost</div>
+                <div style="font-size:24px;color:var(--primary)">⏱</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:36px;color:var(--text);line-height:1">1174</div>
+              </div>
+            </div>
+
+            <!-- history tabs -->
+            <div style="display:flex;padding:0 var(--sp-md) var(--sp-sm);gap:var(--sp-sm)">
+              <div style="background:var(--card);border-radius:var(--r-md);padding:10px var(--sp-md);display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">Tag History</span>
+                <span style="background:var(--border);border-radius:var(--r-full);padding:1px 7px;font-size:10px;font-weight:700;color:var(--text-sub)">4381</span>
+              </div>
+              <div style="padding:10px var(--sp-sm);display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:600;color:var(--text-muted)">Ghost History</span>
+                <span style="background:var(--border);border-radius:var(--r-full);padding:1px 7px;font-size:10px;font-weight:700;color:var(--text-muted)">621</span>
+              </div>
+            </div>
+
+            <!-- rival rows -->
+            <div style="display:flex;align-items:center;padding:10px var(--sp-md);gap:var(--sp-sm)">
+              <div class="avatar-sq" style="width:44px;height:44px;border-radius:var(--r-sm);color:var(--red)">P</div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--text)">Percy <span style="color:var(--text-sub);font-weight:400">(997)</span></div>
+                <div style="font-size:11px"><span style="color:var(--text-muted)">0W</span> <span style="color:var(--text-muted)">/</span> <span style="color:var(--red)">1L</span> <span style="color:var(--text-muted)">/ 0D</span></div>
+              </div>
+              <div style="width:26px;height:26px;border-radius:6px;background:var(--red)"></div>
+              <span style="color:var(--text-sub);font-size:14px">↗</span>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 var(--sp-md)"></div>
+            <div style="display:flex;align-items:center;padding:10px var(--sp-md);gap:var(--sp-sm)">
+              <div class="avatar-sq" style="width:44px;height:44px;border-radius:var(--r-sm);color:var(--green)">M</div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--text)">Merry <span style="color:var(--text-sub);font-weight:400">(634)</span></div>
+                <div style="font-size:11px"><span style="color:var(--green)">1W</span> <span style="color:var(--text-muted)">/</span> <span style="color:var(--text-muted)">0L</span> <span style="color:var(--text-muted)">/ 0D</span></div>
+              </div>
+              <div style="width:26px;height:26px;border-radius:6px;background:var(--green)"></div>
+              <span style="color:var(--text-sub);font-size:14px">↗</span>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 var(--sp-md)"></div>
+            <div style="display:flex;align-items:center;padding:10px var(--sp-md);gap:var(--sp-sm)">
+              <div class="avatar-sq" style="width:44px;height:44px;border-radius:var(--r-sm);color:var(--primary)">P</div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;color:var(--text)">Pierre <span style="color:var(--text-sub);font-weight:400">(773)</span></div>
+                <div style="font-size:11px"><span style="color:var(--text-muted)">0W</span> <span style="color:var(--text-muted)">/</span> <span style="color:var(--red)">1L</span> <span style="color:var(--text-muted)">/ 0D</span></div>
+              </div>
+              <div style="width:26px;height:26px;border-radius:6px;background:var(--red)"></div>
+              <span style="color:var(--text-sub);font-size:14px">↗</span>
+            </div>
+
+            <!-- view all -->
+            <div style="margin:var(--sp-md);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;text-align:center;font-size:13px;font-weight:600;color:var(--text)">View All Games</div>
+
+            <!-- tab bar -->
+            <div style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);display:flex;padding:10px 0 16px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">🏠</span>
+                <span style="font-size:10px;color:var(--text-sub)">Home</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">📊</span>
+                <span style="font-size:10px;color:var(--text-sub)">Stats</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">👤</span>
+                <span style="font-size:10px;color:var(--text);font-weight:700">Alex</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS: Ghost History tab -->
+      <div class="phone">
+        <div class="phone-label">Stats — Ghost History</div>
+        <div class="phone-frame">
+          <div class="phone-notch"><div class="phone-pill"></div></div>
+          <div class="phone-content bg-dark" style="padding-bottom:60px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px var(--sp-md) 0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar-sq" style="width:40px;height:40px;border-radius:10px;color:var(--you)">T</div>
+                <div style="font-size:15px;font-weight:700">Tapan</div>
+              </div>
+              <div style="background:var(--card);border-radius:var(--r-md);padding:7px 10px;font-size:13px;font-weight:600">Compare</div>
+            </div>
+            <!-- period -->
+            <div style="display:flex;gap:var(--sp-md);padding:12px var(--sp-md) 0;overflow:hidden">
+              <span style="font-size:12px;color:var(--text-sub)">7 days</span>
+              <span style="font-size:12px;color:var(--text-sub)">30 days</span>
+              <span style="font-size:12px;color:var(--text-sub)">90 days</span>
+              <div>
+                <span style="font-size:12px;color:var(--text);font-weight:700">1 year</span>
+                <div style="height:2px;background:var(--text);border-radius:1px;margin-top:4px"></div>
+              </div>
+              <span style="font-size:12px;color:var(--text-sub)">All Time</span>
+            </div>
+            <!-- tiles -->
+            <div style="display:flex;gap:var(--sp-sm);padding:var(--sp-md);padding-bottom:0">
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font-size:20px;color:var(--red)">🏃</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:36px;line-height:1">5824</div>
+                <div style="font-size:12px;color:var(--text-sub)">Tags</div>
+              </div>
+              <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md);display:flex;flex-direction:column;align-items:center;gap:4px">
+                <div style="font-size:20px;color:var(--primary)">⏱</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:36px;color:var(--text);line-height:1">1174</div>
+                <div style="font-size:12px;color:var(--text-sub)">Ghosts</div>
+              </div>
+            </div>
+            <!-- tabs - Ghost active -->
+            <div style="display:flex;padding:var(--sp-md);padding-bottom:var(--sp-sm);gap:var(--sp-sm)">
+              <div style="padding:10px var(--sp-md)">
+                <span style="font-size:13px;font-weight:600;color:var(--text-muted)">Tag History</span>
+              </div>
+              <div style="background:var(--card);border-radius:var(--r-md);padding:10px var(--sp-md)">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">Ghost History</span>
+              </div>
+            </div>
+            <!-- ghost rating chart -->
+            <div style="margin:0 var(--sp-md);background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-md) var(--sp-sm) var(--sp-sm);height:110px;display:flex;align-items:flex-end;gap:var(--sp-sm)">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:80px;padding-right:4px">
+                <span style="font-size:9px;color:var(--text-muted)">1359</span>
+                <span style="font-size:9px;color:var(--text-muted)">1259</span>
+                <span style="font-size:9px;color:var(--text-muted)">1159</span>
+                <span style="font-size:9px;color:var(--text-muted)">1059</span>
+              </div>
+              <div style="flex:1;height:80px">
+                <svg width="100%" height="80" viewBox="0 0 220 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                  <rect x="0"   y="60" width="26" height="20" fill="#3D7BFF" opacity="0.2" rx="2"/>
+                  <rect x="30"  y="50" width="26" height="30" fill="#3D7BFF" opacity="0.25" rx="2"/>
+                  <rect x="60"  y="40" width="26" height="40" fill="#3D7BFF" opacity="0.3" rx="2"/>
+                  <rect x="90"  y="25" width="26" height="55" fill="#3D7BFF" opacity="0.3" rx="2"/>
+                  <rect x="120" y="35" width="26" height="45" fill="#3D7BFF" opacity="0.35" rx="2"/>
+                  <rect x="150" y="20" width="26" height="60" fill="#3D7BFF" opacity="0.4" rx="2"/>
+                  <rect x="180" y="15" width="26" height="65" fill="#3D7BFF" opacity="0.45" rx="2"/>
+                  <polyline points="13,60 43,50 73,38 103,25 133,34 163,19 193,14" fill="none" stroke="#3D7BFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="193" cy="14" r="3" fill="#C5FF40"/>
+                </svg>
+              </div>
+            </div>
+            <!-- ghost rating total -->
+            <div style="padding:var(--sp-md) var(--sp-md) var(--sp-sm);display:flex;justify-content:space-between;align-items:flex-end">
+              <div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Ghost Rating</div>
+                <div style="font-family:var(--f-disp);font-weight:900;font-size:44px;color:var(--you);line-height:1">1259</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--green)"></div>
+                <span style="font-size:11px;color:var(--green);font-weight:700">+7.3%</span>
+                <span style="font-size:11px;color:var(--text-sub)">1 year</span>
+              </div>
+            </div>
+            <!-- tab bar -->
+            <div style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);display:flex;padding:10px 0 16px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">🏠</span><span style="font-size:10px;color:var(--text-sub)">Home</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">📊</span><span style="font-size:10px;color:var(--text);font-weight:700">Stats</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <span style="font-size:18px">👤</span><span style="font-size:10px;color:var(--text-sub)">Alex</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- design notes -->
+    <div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-md);display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md)">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Stats Screen</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.7">
+          Period filter uses underline-active pattern (not pill). Chart: bar columns (blue, low opacity) + line sparkline overlay + chartreuse endpoint dot.
+          KM total in Barlow Condensed 900 — same weight as the run screen hero numbers. Rating shown in chartreuse (your data = your color).
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">Profile Screen</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.7">
+          Rival result dot: green square = winning record vs that opponent, red square = losing record. Two-mode rating tiles (Tag red / Ghost blue) reinforce the role-color system.
+          History tab badge shows total games, not active count — it's a record, not a notification.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="border-top:1px solid var(--border);padding-top:32px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-family:var(--f-disp);font-weight:900;font-size:24px">CHASE</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Design System v1.1 · Generated by /design-consultation · 2026-06-07</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:var(--text-muted)">Tactical Surveillance · Dark-only</div>
+      <div style="font-size:11px;color:var(--text-muted)">Ghost mode + Tag mode (dual-role color) · Map-integrated</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
