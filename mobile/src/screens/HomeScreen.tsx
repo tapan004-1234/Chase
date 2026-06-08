@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   View, Text, FlatList, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Switch, RefreshControl,
+  StyleSheet, ActivityIndicator, Alert, Switch, RefreshControl,
   useWindowDimensions, Share, Animated, Platform,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -214,20 +214,24 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
   }
 
   function handlePlayTag() {
-    if (lobby && lobbyCode) {
-      // Navigate to pre-game screen with host role
-      const opponent = players[0]?.profile ?? null
-      if (!opponent) return
-      const headStart = Math.min(500, Math.max(0, (profile.tag_rating - opponent.tag_rating) * 0.5))
-      onStartTag({
-        lobbyCode,
-        myRole:           'police',
-        opponentProfile:  opponent,
-        durationMinutes:  timeMinutes,
-        headStartMetres:  headStart,
-      })
+    if (!lobby) {
+      Alert.alert('Enable Lobby', 'Turn on "Create Lobby" above to invite a friend and start a Tag game.')
+      return
     }
-    // Non-lobby Tag: for now, no-op (requires opponent selection flow)
+    if (!lobbyCode) return
+    const opponent = players[0]?.profile ?? null
+    if (!opponent) {
+      Alert.alert('No opponent yet', 'Share your lobby code so a friend can join, then start the chase.')
+      return
+    }
+    const headStart = Math.min(500, Math.max(0, (profile.tag_rating - opponent.tag_rating) * 0.5))
+    onStartTag({
+      lobbyCode,
+      myRole:           'police',
+      opponentProfile:  opponent,
+      durationMinutes:  timeMinutes,
+      headStartMetres:  headStart,
+    })
   }
 
   function wlLabel(w: number, l: number) {
@@ -505,12 +509,6 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
       </View>
     </View>
   )
-}
-
-function formatPace(secsPerKm: number): string {
-  const m = Math.floor(secsPerKm / 60)
-  const s = Math.floor(secsPerKm % 60)
-  return `${m}:${s.toString().padStart(2, '0')} /km`
 }
 
 const s = StyleSheet.create({
