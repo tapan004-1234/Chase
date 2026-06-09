@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   View, Text, FlatList, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert, Switch, RefreshControl,
-  useWindowDimensions, Share, Animated, Platform,
+  useWindowDimensions, Share, Animated, Platform, Modal,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -38,7 +38,6 @@ function TimeDrumPicker({ value, onChange }: { value: number; onChange: (n: numb
   const ref = useRef<ScrollView>(null)
   const pendingSnap = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Scroll to value on mount
   useEffect(() => {
     const t = setTimeout(() => {
       ref.current?.scrollTo({ x: (value - TIME_MIN) * DRUM_W, animated: false })
@@ -55,18 +54,14 @@ function TimeDrumPicker({ value, onChange }: { value: number; onChange: (n: numb
     if (next !== value) onChange(next)
   }
 
-  // onScrollEndDrag catches slow lifts; onMomentumScrollEnd catches flicks
   function onScrollEnd(x: number) {
     if (pendingSnap.current) clearTimeout(pendingSnap.current)
-    // Small delay lets native momentum fire first so we don't double-snap
     pendingSnap.current = setTimeout(() => snapTo(x), Platform.OS === 'android' ? 60 : 0)
   }
 
   return (
     <View style={drum.wrapper}>
-      {/* Center selection highlight */}
       <View pointerEvents="none" style={[drum.highlight, { left: pad, width: DRUM_W }]} />
-
       <ScrollView
         ref={ref}
         horizontal
@@ -119,10 +114,13 @@ const drum = StyleSheet.create({
 
 export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge, onChallengeFriend, onStartTag, onViewPastRun }: Props) {
   const insets = useSafeAreaInsets()
-  const [mode,          setMode]          = useState<Mode>('Ghost')
+  // Tag is the default mode
+  const [mode,          setMode]          = useState<Mode>('Tag')
   const [lobby,         setLobby]         = useState(false)
   const [lobbyCode,     setLobbyCode]     = useState<string | null>(null)
   const [lobbyCreating, setLobbyCreating] = useState(false)
+  const [lobbyGuest,    setLobbyGuest]    = useState<Profile | null>(null)
+  const [showQrModal,   setShowQrModal]   = useState(false)
   const [timeMinutes,   setTimeMinutes]   = useState(10)
   const [players,       setPlayers]       = useState<KnownPlayer[]>([])
   const [recommended,   setRecommended]   = useState<KnownPlayer | null>(null)
@@ -188,15 +186,40 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
 
   useEffect(() => { load() }, [load])
 
+  // Watch for a guest joining the lobby so the thief slot updates in real-time
+  useEffect(() => {
+    if (!lobbyCode) { setLobbyGuest(null); return }
+
+    const channel = supabase
+      .channel(`lobby-home-${lobbyCode}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'lobbies',
+        filter: `code=eq.${lobbyCode}`,
+      }, async (payload) => {
+        const guestId = (payload.new as any).guest_id as string | null
+        if (guestId) {
+          const { data } = await supabase.from('profiles').select('*').eq('id', guestId).single()
+          if (data) setLobbyGuest(data as Profile)
+        } else {
+          setLobbyGuest(null)
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [lobbyCode])
+
   // Lobby management (Tag mode only)
   async function handleLobbyToggle(on: boolean) {
     if (!on) {
-      // Delete the active lobby from DB if we created one
       if (lobbyCode) {
         await supabase.from('lobbies').delete().eq('code', lobbyCode).eq('host_id', profile.id)
       }
       setLobby(false)
       setLobbyCode(null)
+      setLobbyGuest(null)
       return
     }
     setLobby(true)
@@ -219,16 +242,15 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
       return
     }
     if (!lobbyCode) return
-    const opponent = players[0]?.profile ?? null
-    if (!opponent) {
-      Alert.alert('No opponent yet', 'Share your lobby code so a friend can join, then start the chase.')
+    if (!lobbyGuest) {
+      Alert.alert('No opponent yet', 'Share your lobby QR so a friend can join, then start the chase.')
       return
     }
-    const headStart = Math.min(500, Math.max(0, (profile.tag_rating - opponent.tag_rating) * 0.5))
+    const headStart = Math.min(500, Math.max(0, (profile.tag_rating - lobbyGuest.tag_rating) * 0.5))
     onStartTag({
       lobbyCode,
       myRole:           'police',
-      opponentProfile:  opponent,
+      opponentProfile:  lobbyGuest,
       durationMinutes:  timeMinutes,
       headStartMetres:  headStart,
     })
@@ -276,6 +298,9 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
   }
 
   const visibleRuns = runsExpanded ? pastRuns : pastRuns.slice(0, 3)
+
+  // Footer height: drum picker (72) + label (28) + play button (56) + padding
+  const FOOTER_HEIGHT = 172
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -359,26 +384,44 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
               }
             </View>
 
-            {/* Lobby QR panel */}
+            {/* Lobby card — police/thief split */}
             {lobby && lobbyCode && (
-              <View style={s.qrPanel}>
-                <View style={s.qrBox}>
-                  <QRCode
-                    value={`chase://lobby/${lobbyCode}`}
-                    size={160}
-                    backgroundColor="#1A1A1A"
-                    color="#FFFFFF"
-                  />
+              <>
+                <View style={s.lobbyCard}>
+                  {/* Police side */}
+                  <View style={[s.lobbyHalf, s.lobbyHalfPolice]}>
+                    <Text style={[s.lobbyRoleLabel, { color: C.red }]}>POLICE</Text>
+                    <Avatar username={profile.username} size={44} />
+                    <Text style={s.lobbyPlayerName} numberOfLines={1}>{profile.username}</Text>
+                    <Text style={s.lobbyRatingText}>({profile.tag_rating})</Text>
+                  </View>
+
+                  {/* Vertical divider */}
+                  <View style={s.lobbyDivider} />
+
+                  {/* Thief side */}
+                  <View style={[s.lobbyHalf, s.lobbyHalfThief]}>
+                    <Text style={[s.lobbyRoleLabel, { color: C.primary }]}>THIEF</Text>
+                    {lobbyGuest ? (
+                      <>
+                        <Avatar username={lobbyGuest.username} size={44} />
+                        <Text style={s.lobbyPlayerName} numberOfLines={1}>{lobbyGuest.username}</Text>
+                        <Text style={s.lobbyRatingText}>({lobbyGuest.tag_rating})</Text>
+                      </>
+                    ) : (
+                      <View style={s.lobbyWaiting}>
+                        <ActivityIndicator color={C.textMuted} size="small" />
+                        <Text style={s.lobbyWaitingText}>Waiting...</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-                <Text style={s.lobbyCode}>{lobbyCode}</Text>
-                <Text style={s.lobbyCodeHint}>Share this code or scan to join</Text>
-                <TouchableOpacity style={s.shareQrBtn} onPress={() => {
-                  Share.share({ message: `Join my Chase lobby: ${lobbyCode}` })
-                }}>
-                  <Ionicons name="share-outline" size={16} color={C.text} />
+
+                {/* Share QR — opens modal */}
+                <TouchableOpacity style={s.shareQrBtn} onPress={() => setShowQrModal(true)} activeOpacity={0.8}>
                   <Text style={s.shareQrText}>Share QR</Text>
                 </TouchableOpacity>
-              </View>
+              </>
             )}
 
             {/* Friends list in Tag mode */}
@@ -400,19 +443,13 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
                     ))
               }
             </View>
-
-            {/* Time selector */}
-            <View style={s.timeSection}>
-              <Text style={s.timeSectionLabel}>DURATION</Text>
-              <TimeDrumPicker value={timeMinutes} onChange={setTimeMinutes} />
-            </View>
           </>
         )}
 
         {/* ── GHOST MODE ───────────────────────────────────────────────────── */}
         {mode === 'Ghost' && (
           <>
-            {/* Friends list in Ghost mode */}
+            {/* Friends list */}
             <View style={s.section}>
               <View style={s.sectionHeader}>
                 <View style={s.sectionTitleRow}>
@@ -435,12 +472,6 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
               }
             </View>
 
-            {/* Time selector */}
-            <View style={s.timeSection}>
-              <Text style={s.timeSectionLabel}>TIME</Text>
-              <TimeDrumPicker value={timeMinutes} onChange={setTimeMinutes} />
-            </View>
-
             {/* Past runs */}
             {pastRuns.length > 0 && (
               <View style={s.section}>
@@ -461,8 +492,7 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
                       <Text style={s.runDist}>{run.distance_km.toFixed(2)} km</Text>
                       <Text style={s.runMeta}>{formatPace(run.avg_pace_s_per_km)} · {formatDate(run.created_at)}</Text>
                     </View>
-                    <TouchableOpacity style={s.challengeRunBtn}
-                      onPress={() => onViewPastRun(run)}>
+                    <TouchableOpacity style={s.challengeRunBtn} onPress={() => onViewPastRun(run)}>
                       <Text style={s.challengeRunText}>Challenge</Text>
                     </TouchableOpacity>
                   </View>
@@ -472,27 +502,73 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
           </>
         )}
 
-        <View style={{ height: 100 }} />
+        {/* Spacer so content doesn't hide behind fixed footer */}
+        <View style={{ height: FOOTER_HEIGHT + insets.bottom }} />
       </ScrollView>
 
-      {/* Play button — fixed above tab bar */}
-      <View style={[s.playWrap, { paddingBottom: insets.bottom + S.sm }]}>
-        {mode === 'Ghost' && (
+      {/* Fixed footer: timer drum + play button — always in the same position */}
+      <View style={[s.footer, { paddingBottom: insets.bottom + S.sm }]}>
+        <Text style={s.footerTimerLabel}>DURATION</Text>
+        <TimeDrumPicker value={timeMinutes} onChange={setTimeMinutes} />
+        {mode === 'Ghost' ? (
           <TouchableOpacity style={s.playBtn} onPress={onStartFreeRun} activeOpacity={0.85}>
             <Text style={s.playBtnText}>Play</Text>
           </TouchableOpacity>
-        )}
-        {mode === 'Tag' && (
+        ) : (
           <TouchableOpacity
             style={[s.playBtn, { backgroundColor: C.red }]}
             onPress={handlePlayTag}
             activeOpacity={0.85}
             disabled={lobby && !lobbyCode}
           >
-            <Text style={s.playBtnText}>{lobby ? (lobbyCode ? 'Start Lobby' : 'Creating…') : 'Play Tag'}</Text>
+            <Text style={s.playBtnText}>
+              {lobby ? (lobbyCode ? 'Start Chase' : 'Creating…') : 'Play Tag'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {/* QR code modal */}
+      <Modal
+        visible={showQrModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowQrModal(false)}
+      >
+        <TouchableOpacity
+          style={s.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowQrModal(false)}
+        >
+          <View style={s.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={s.modalHandle} />
+            <Text style={s.modalTitle}>Join Lobby</Text>
+            <View style={s.qrBox}>
+              <QRCode
+                value={`chase://lobby/${lobbyCode ?? ''}`}
+                size={200}
+                backgroundColor={C.card}
+                color={C.text}
+              />
+            </View>
+            <Text style={s.lobbyCodeText}>{lobbyCode}</Text>
+            <Text style={s.lobbyCodeHint}>Scan or share code to join</Text>
+            <TouchableOpacity
+              style={s.qrShareBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                Share.share({ message: `Join my Chase lobby!\nCode: ${lobbyCode}\nchase://lobby/${lobbyCode}` })
+              }}
+            >
+              <Ionicons name="share-outline" size={16} color={C.bg} />
+              <Text style={s.qrShareBtnText}>Share Code</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.modalClose} onPress={() => setShowQrModal(false)}>
+              <Text style={s.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   )
 }
@@ -519,7 +595,7 @@ const s = StyleSheet.create({
   lossColor:       { color: C.red },
   wlSep:           { color: C.textMuted },
 
-  // Incoming
+  // Incoming challenges
   incomingCard:    { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: R.md, padding: S.md, marginBottom: S.sm, gap: S.md },
   incomingInfo:    { flex: 1 },
   incomingStats:   { color: C.textSub, fontSize: 13, marginTop: 2 },
@@ -534,20 +610,28 @@ const s = StyleSheet.create({
   modeTabText:     { color: C.textSub, fontSize: 16, fontWeight: '600' },
   modeTabTextActive: { color: C.text },
 
-  // Lobby (Tag only)
+  // Lobby toggle row
   lobbyRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.md },
   lobbyLabel:      { color: C.text, fontSize: 16, fontWeight: '600' },
   lobbySub:        { color: C.textSub, fontSize: 12, marginTop: 2 },
 
-  // QR panel
-  qrPanel:         { marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, alignItems: 'center', marginBottom: S.md },
-  qrBox:           { backgroundColor: '#1A1A1A', borderRadius: R.md, padding: S.md, marginBottom: S.md },
-  lobbyCode:       { color: C.text, fontSize: 28, fontFamily: F.display, letterSpacing: 6, marginBottom: 4 },
-  lobbyCodeHint:   { color: C.textSub, fontSize: 13, marginBottom: S.md },
-  shareQrBtn:      { flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardDeep, borderRadius: R.md, paddingHorizontal: S.lg, paddingVertical: 12, gap: S.sm },
-  shareQrText:     { color: C.text, fontWeight: '600', fontSize: 14 },
+  // Lobby card — split design
+  lobbyCard:       { flexDirection: 'row', marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.lg, overflow: 'hidden', height: 140, marginBottom: S.sm },
+  lobbyHalf:       { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: S.md },
+  lobbyHalfPolice: { backgroundColor: 'rgba(255,59,59,0.08)' },
+  lobbyHalfThief:  { backgroundColor: 'rgba(61,123,255,0.08)' },
+  lobbyDivider:    { width: 1, backgroundColor: C.border },
+  lobbyRoleLabel:  { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: F.bodyBold },
+  lobbyPlayerName: { color: C.text, fontSize: 13, fontWeight: '600', maxWidth: 100, textAlign: 'center' },
+  lobbyRatingText: { color: C.textSub, fontSize: 11 },
+  lobbyWaiting:    { alignItems: 'center', gap: S.xs },
+  lobbyWaitingText:{ color: C.textMuted, fontSize: 12 },
 
-  // Section — S.lg for HIG standard margin
+  // Share QR button (opens modal)
+  shareQrBtn:      { marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.md, paddingVertical: 14, alignItems: 'center', marginBottom: S.md },
+  shareQrText:     { color: C.text, fontWeight: '600', fontSize: 15 },
+
+  // Section
   section:         { paddingHorizontal: S.lg, marginTop: S.sm },
   sectionHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.sm },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
@@ -573,14 +657,26 @@ const s = StyleSheet.create({
   challengeRunBtn: { backgroundColor: C.card, borderRadius: R.md, paddingHorizontal: S.sm, paddingVertical: 8 },
   challengeRunText:{ color: C.textSub, fontSize: 12, fontWeight: '600' },
 
-  // Time drum picker
-  timeSection:      { marginTop: S.sm },
-  timeSectionLabel: { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, paddingHorizontal: S.lg, marginBottom: 4 },
+  // Fixed footer — timer + play button, always above the tab bar
+  footer:          { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, paddingHorizontal: S.lg, paddingTop: S.xs, borderTopWidth: 0.5, borderTopColor: C.border },
+  footerTimerLabel:{ color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textAlign: 'center', marginBottom: 0 },
 
   // Play button
-  playWrap:        { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: S.lg, paddingTop: S.sm, backgroundColor: C.bg },
-  playBtn:         { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 18, alignItems: 'center' },
-  playBtnText:     { color: C.text, fontSize: 20, fontWeight: '700' },
+  playBtn:         { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 18, alignItems: 'center', marginTop: S.xs },
+  playBtnText:     { color: C.text, fontSize: 20, fontWeight: '700', fontFamily: F.display },
+
+  // QR Modal
+  modalBackdrop:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalSheet:      { backgroundColor: C.card, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, padding: S.xl, alignItems: 'center', gap: S.md },
+  modalHandle:     { width: 40, height: 4, backgroundColor: C.border, borderRadius: R.full, marginBottom: S.sm },
+  modalTitle:      { color: C.text, fontSize: 18, fontWeight: '700', fontFamily: F.displayBold },
+  qrBox:           { backgroundColor: C.cardDeep, borderRadius: R.lg, padding: S.lg },
+  lobbyCodeText:   { color: C.text, fontSize: 32, fontFamily: F.display, letterSpacing: 6 },
+  lobbyCodeHint:   { color: C.textSub, fontSize: 13 },
+  qrShareBtn:      { flexDirection: 'row', alignItems: 'center', backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 14, paddingHorizontal: S.xl, gap: S.sm, width: '100%', justifyContent: 'center' },
+  qrShareBtnText:  { color: C.bg, fontWeight: '700', fontSize: 16, fontFamily: F.displayBold },
+  modalClose:      { paddingVertical: S.sm },
+  modalCloseText:  { color: C.textSub, fontSize: 15 },
 
   empty:           { color: C.textMuted, fontSize: 14, textAlign: 'center', paddingVertical: S.xl },
 })
