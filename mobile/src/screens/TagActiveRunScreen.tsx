@@ -61,11 +61,16 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
 
   const [outcome, setOutcome] = useState<'police_win' | 'thief_win' | null>(null)
 
-  const broadcastRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const channelRef   = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const broadcastRef         = useRef<ReturnType<typeof setInterval> | null>(null)
+  const channelRef           = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  // Ref-based game-over flag prevents stale-closure double-fires in the timer callback
+  const gameOverRef          = useRef(false)
+  // Only check police win after opponent has sent at least one GPS broadcast
+  const opponentBroadcastedRef = useRef(false)
 
   function endGame(result: 'police_win' | 'thief_win') {
-    if (gameOver) return
+    if (gameOverRef.current) return
+    gameOverRef.current = true
     setGameOver(true)
     stopRun()
     setOutcome(result)
@@ -80,7 +85,7 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
     const t = setInterval(() => {
       setElapsed(s => {
         const next = s + 1
-        if (next >= limitSecs && !gameOver) endGame('thief_win')
+        if (next >= limitSecs && !gameOverRef.current) endGame('thief_win')
         return next
       })
     }, 1000)
@@ -100,6 +105,7 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
         }
         const opponentRole = myRole === 'police' ? 'thief' : 'police'
         if (senderRole === opponentRole) {
+          opponentBroadcastedRef.current = true
           setOpponent(prev => {
             const thiefDist  = myRole === 'thief'   ? myDistRef.current : oppDist
             const policeDist = myRole === 'police'  ? myDistRef.current : oppDist
@@ -139,9 +145,10 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
 
   // Police win check: virtual gap ≤ 0
   useEffect(() => {
-    if (gameOver) return
-    // Don't trigger before either player has moved — prevents instant win at gap = 0 (equal ratings)
-    if (distanceKm === 0 && opponent.opponentDistanceKm === 0) return
+    if (gameOverRef.current) return
+    // Don't check until the opponent has sent at least one broadcast — prevents instant win
+    // before their GPS data arrives (first broadcast takes ~2s after game start)
+    if (!opponentBroadcastedRef.current) return
     const myDist   = distanceKm
     const oppDist  = opponent.opponentDistanceKm
     const thiefDist  = myRole === 'thief'  ? myDist : oppDist
