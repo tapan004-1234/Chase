@@ -270,21 +270,7 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
             <Text style={s.challengeBtnText}>Challenge</Text>
           </TouchableOpacity>
         )}
-        {mode === 'Tag' && (
-          <TouchableOpacity style={[s.challengeBtn, { backgroundColor: C.red }]}
-            onPress={() => {
-              const headStart = Math.min(500, Math.max(0, (profile.tag_rating - item.profile.tag_rating) * 0.5))
-              onStartTag({
-                lobbyCode:       `direct-${profile.id.slice(0, 6)}`,
-                myRole:          'police',
-                opponentProfile: item.profile,
-                durationMinutes: timeMinutes,
-                headStartMetres: headStart,
-              })
-            }}>
-            <Text style={s.challengeBtnText}>Tag</Text>
-          </TouchableOpacity>
-        )}
+        {/* Tag requires a real lobby — use the QR/code flow above; no per-friend shortcut */}
       </View>
     )
   }
