@@ -24,7 +24,7 @@ interface Props {
   onCancel: () => void
 }
 
-const BROADCAST_INTERVAL_MS = 10_000
+const BROADCAST_INTERVAL_MS = 2_000
 
 // virtual_gap = head_start + thief_distance_km*1000 - police_distance_km*1000
 // Police wins at gap ≤ 0. Thief wins at time expiry with gap > 0.
@@ -51,13 +51,25 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
   const mapRef = useRef<MapView>(null)
 
   // Own GPS
-  const { liveState, isRecording, startRun, userCoord } = useRunRecorder()
+  const { liveState, isRecording, startRun, stopRun, userCoord } = useRunRecorder()
   const { distanceKm } = liveState
-  const myDistRef = useRef(0)
-  myDistRef.current = distanceKm
+  const myDistRef    = useRef(0)
+  myDistRef.current  = distanceKm
+  // Keep a ref to userCoord so the broadcast interval never captures a stale closure value
+  const userCoordRef = useRef<{ latitude: number; longitude: number } | null>(null)
+  userCoordRef.current = userCoord ?? null
+
+  const [outcome, setOutcome] = useState<'police_win' | 'thief_win' | null>(null)
 
   const broadcastRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const channelRef   = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  function endGame(result: 'police_win' | 'thief_win') {
+    if (gameOver) return
+    setGameOver(true)
+    stopRun()
+    setOutcome(result)
+  }
 
   // Start recording on mount
   useEffect(() => { startRun() }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -68,10 +80,7 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
     const t = setInterval(() => {
       setElapsed(s => {
         const next = s + 1
-        if (next >= limitSecs && !gameOver) {
-          setGameOver(true)
-          onEnd('thief_win')
-        }
+        if (next >= limitSecs && !gameOver) endGame('thief_win')
         return next
       })
     }, 1000)
@@ -108,7 +117,7 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
 
     channelRef.current = channel
 
-    // Broadcast own position every 10s
+    // Broadcast own position every 2s — use refs to avoid stale closures
     broadcastRef.current = setInterval(() => {
       channel.send({
         type: 'broadcast',
@@ -116,8 +125,8 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
         payload: {
           role:       myRole,
           distanceKm: myDistRef.current,
-          lat:        userCoord?.latitude ?? null,
-          lng:        userCoord?.longitude ?? null,
+          lat:        userCoordRef.current?.latitude ?? null,
+          lng:        userCoordRef.current?.longitude ?? null,
         },
       })
     }, BROADCAST_INTERVAL_MS)
@@ -137,10 +146,7 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
     const policeDist = myRole === 'police' ? myDist : oppDist
     const gap = calcGap(headStartMetres, thiefDist, policeDist)
 
-    if (gap <= 0) {
-      setGameOver(true)
-      onEnd('police_win')
-    }
+    if (gap <= 0) endGame('police_win')
   }, [distanceKm, opponent.opponentDistanceKm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const timeLeft = Math.max(0, durationMinutes * 60 - elapsed)
@@ -265,6 +271,36 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
           <Text style={s.endBtnText}>End Run</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Outcome overlay — shown when game ends */}
+      {outcome && (
+        <View style={s.outcomeOverlay}>
+          <Text style={s.outcomeEmoji}>
+            {outcome === 'police_win' ? '🚔' : '🏃'}
+          </Text>
+          <Text style={s.outcomeTitle}>
+            {outcome === 'police_win' ? 'POLICE WINS' : 'THIEF WINS'}
+          </Text>
+          <Text style={s.outcomeSub}>
+            {outcome === 'police_win' ? 'Gap closed — tag!' : 'Time ran out — thief escapes!'}
+          </Text>
+          <View style={s.outcomeStats}>
+            <Text style={s.outcomeStatLine}>
+              Your distance: {distanceKm.toFixed(2)} km
+            </Text>
+            <Text style={s.outcomeStatLine}>
+              Opponent: {opponent.opponentDistanceKm.toFixed(2)} km
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={s.outcomeDoneBtn}
+            onPress={() => onEnd(outcome)}
+            activeOpacity={0.85}
+          >
+            <Text style={s.outcomeDoneBtnText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   )
 }
@@ -312,4 +348,14 @@ const s = StyleSheet.create({
   statsRow:     { flexDirection: 'row', gap: S.sm, marginBottom: S.md },
   endBtn:       { backgroundColor: C.card, borderRadius: R.full, paddingVertical: 14, alignItems: 'center', marginTop: S.xs },
   endBtnText:   { color: C.textSub, fontSize: 16, fontWeight: '600' },
+
+  // Outcome overlay
+  outcomeOverlay:   { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,13,0.95)', justifyContent: 'center', alignItems: 'center', padding: S.xl },
+  outcomeEmoji:     { fontSize: 72, marginBottom: S.md },
+  outcomeTitle:     { fontSize: 36, fontFamily: F.display, color: C.text, marginBottom: S.sm },
+  outcomeSub:       { fontSize: 15, color: C.textSub, textAlign: 'center', marginBottom: S.lg },
+  outcomeStats:     { backgroundColor: C.card, borderRadius: R.lg, padding: S.md, width: '100%', marginBottom: S.xl, gap: S.xs },
+  outcomeStatLine:  { color: C.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
+  outcomeDoneBtn:   { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 16, paddingHorizontal: 48, alignItems: 'center' },
+  outcomeDoneBtnText:{ color: C.bg, fontSize: 18, fontWeight: '700', fontFamily: F.display },
 })

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Chase",
     "slug": "chase",
+    "scheme": "chase",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

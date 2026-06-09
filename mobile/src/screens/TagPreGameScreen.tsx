@@ -10,24 +10,38 @@ import { C, F, R, S } from '../theme'
 import type { Lobby, Profile, TagParameters } from '../types'
 
 interface Props {
-  lobbyCode:      string
-  isHost:         boolean
-  durationMinutes: number
-  myProfile:      Profile
-  onStart:        (params: TagParameters) => void
-  onCancel:       () => void
+  lobbyCode:       string
+  isHost?:         boolean
+  durationMinutes?: number
+  myProfile:       Profile
+  onStart:         (params: TagParameters) => void
+  onCancel:        () => void
 }
 
 // Police = host (pursuer), Thief = guest (runner)
 // Head start = max(0, min(500, (police_rating - thief_rating) * 0.5)) metres
 
-export default function TagPreGameScreen({ lobbyCode, isHost, durationMinutes, myProfile, onStart, onCancel }: Props) {
+export default function TagPreGameScreen({ lobbyCode, isHost: isHostProp, durationMinutes, myProfile, onStart, onCancel }: Props) {
   const insets = useSafeAreaInsets()
   const [lobby,         setLobby]         = useState<Lobby | null>(null)
   const [loading,       setLoading]       = useState(true)
   const [myReady,       setMyReady]       = useState(false)
   const [togglingReady, setTogglingReady] = useState(false)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  // isHost may be undefined when arriving via deep link — derive it from lobby once loaded
+  const isHost = isHostProp ?? (lobby?.host_id === myProfile.id)
+
+  // Guest join: when arriving via deep link the guest slot is empty; claim it
+  useEffect(() => {
+    if (isHostProp === true) return  // host never needs to claim guest slot
+    supabase
+      .from('lobbies')
+      .update({ guest_id: myProfile.id })
+      .eq('code', lobbyCode)
+      .is('guest_id', null)  // only claim if still empty
+      .then(() => {/* fire-and-forget; realtime subscription will refresh lobby */})
+  }, [lobbyCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let mounted = true

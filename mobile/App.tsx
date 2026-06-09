@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
+import * as ExpoLinking from 'expo-linking'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -37,8 +38,27 @@ type HomeStackParams = {
   Home:         undefined
   ActiveRun:    { ghost?: GhostParameters }
   PostRun:      { record: RunRecord; ghost?: GhostParameters; alreadySavedRunId?: string }
-  TagPreGame:   { lobbyCode: string; isHost: boolean; durationMinutes: number }
+  // isHost and durationMinutes are optional so deep-linked guests can navigate here
+  // without knowing those values upfront (TagPreGameScreen loads them from DB)
+  TagPreGame:   { lobbyCode: string; isHost?: boolean; durationMinutes?: number }
   TagActiveRun: { params: TagParameters }
+}
+
+// Deep-link config: chase://lobby/ABCDEF → HomeTab → TagPreGame
+// Cast to any: RootTabParams.HomeTab is undefined (no params), so the nested
+// stack screens can't be expressed in the generic; runtime behaviour is correct.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const linking: any = {
+  prefixes: [ExpoLinking.createURL('/'), 'chase://'],
+  config: {
+    screens: {
+      HomeTab: {
+        screens: {
+          TagPreGame: { path: 'lobby/:lobbyCode' },
+        },
+      },
+    },
+  },
 }
 
 // ── Push notification setup ────────────────────────────────────────────────
@@ -433,7 +453,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         {!session
           ? <AuthScreen onAuth={() => {}} />
           : <MainTabs profile={profile!} onSignOut={handleSignOut} onProfileRefresh={handleProfileRefresh} />
