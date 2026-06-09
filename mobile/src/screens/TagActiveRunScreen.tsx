@@ -51,7 +51,7 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
   const mapRef = useRef<MapView>(null)
 
   // Own GPS
-  const { liveState, isRecording, startRun, stopRun, userCoord } = useRunRecorder()
+  const { liveState, startRun, stopRun, userCoord } = useRunRecorder()
   const { distanceKm } = liveState
   const myDistRef    = useRef(0)
   myDistRef.current  = distanceKm
@@ -268,8 +268,8 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
           />
         </View>
 
-        {/* End run button */}
-        <TouchableOpacity style={s.endBtn} onPress={onCancel} activeOpacity={0.8}>
+        {/* End run button — stopRun() clears GPS and timer before navigating away */}
+        <TouchableOpacity style={s.endBtn} onPress={() => { stopRun(); onCancel() }} activeOpacity={0.8}>
           <Text style={s.endBtnText}>End Run</Text>
         </TouchableOpacity>
       </View>
