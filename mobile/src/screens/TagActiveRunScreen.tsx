@@ -140,6 +140,8 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
   // Police win check: virtual gap ≤ 0
   useEffect(() => {
     if (gameOver) return
+    // Don't trigger before either player has moved — prevents instant win at gap = 0 (equal ratings)
+    if (distanceKm === 0 && opponent.opponentDistanceKm === 0) return
     const myDist   = distanceKm
     const oppDist  = opponent.opponentDistanceKm
     const thiefDist  = myRole === 'thief'  ? myDist : oppDist
