@@ -28,7 +28,7 @@ function screenBg(delta: number | null, recording: boolean): string {
 
 function deltaColor(delta: number | null): string {
   if (delta === null) return C.text
-  if (delta > 100)  return C.green
+  if (delta > 100)  return C.you    // chartreuse = you are ahead
   if (delta >= 0)   return C.orange
   return C.red
 }
@@ -173,7 +173,7 @@ export default function ActiveRunScreen({ ghost, onBack, onRunComplete }: Props)
           {gpsPoints.current.length >= 2 && (
             <Polyline
               coordinates={gpsPoints.current}
-              strokeColor={C.primary}
+              strokeColor={C.you}
               strokeWidth={3}
             />
           )}
@@ -308,7 +308,7 @@ const s = StyleSheet.create({
   heroDelta:     { fontFamily: 'BarlowCondensed_900Black', fontSize: 88, letterSpacing: -1, lineHeight: 88 },
 
   // Map markers
-  markerUser:    { width: 22, height: 22, borderRadius: 11, backgroundColor: C.primary, borderWidth: 3, borderColor: C.text, justifyContent: 'center', alignItems: 'center' },
+  markerUser:    { width: 22, height: 22, borderRadius: 11, backgroundColor: C.you, borderWidth: 3, borderColor: C.text, justifyContent: 'center', alignItems: 'center' },
   markerUserDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.text },
   markerGhost:   { backgroundColor: C.red, borderRadius: R.sm, padding: 4, borderWidth: 1.5, borderColor: C.text },
 

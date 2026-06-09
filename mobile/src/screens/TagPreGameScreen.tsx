@@ -294,7 +294,7 @@ function PlayerRow({
 const pr = StyleSheet.create({
   row:        { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: R.md, padding: S.md, gap: S.md, marginBottom: S.sm },
   info:       { flex: 1 },
-  roleLabel:  { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 2 },
+  roleLabel:  { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
   name:       { color: C.text, fontSize: 16, fontWeight: '600' },
   rating:     { color: C.textSub, fontWeight: '400', fontSize: 14 },
   empty:      { color: C.textMuted, fontSize: 15 },

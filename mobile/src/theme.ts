@@ -2,23 +2,24 @@
 
 export const C = {
   // Backgrounds
-  bg:          '#0D0D0D',   // cinema black
+  bg:          '#0A0A0A',   // cinema black — slight warmth, less pure-digital
   surface:     '#161616',   // card / elevated panel
   card:        '#161616',
   cardDeep:    '#1A1A1A',   // secondary surface, tab bar
   border:      '#2A2A2A',
 
   // Accents
-  primary:     '#3D7BFF',   // blue / Thief
+  primary:     '#3D7BFF',   // blue / Thief / Ghost
   red:         '#FF3B3B',   // Police / danger / loss
-  green:       '#22C55E',
+  you:         '#C5FF40',   // chartreuse — YOUR pace, YOUR delta, YOUR ELO. Always. Never use for anything else.
+  green:       '#22C55E',   // police proximity only (police POV "getting close")
   orange:      '#F97316',
   yellow:      '#EAB308',
 
   // Text
   text:        '#FFFFFF',
   textSub:     '#8B8B8B',
-  textMuted:   '#444444',
+  textMuted:   '#4A4550',   // violet-grey — shifts palette toward surveillance aesthetic
 
   // Game state full-screen backgrounds
   stateBlue:   '#3D7BFF',

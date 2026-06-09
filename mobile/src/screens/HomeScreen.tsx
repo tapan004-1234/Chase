@@ -66,7 +66,7 @@ function TimeDrumPicker({ value, onChange }: { value: number; onChange: (n: numb
         ref={ref}
         horizontal
         showsHorizontalScrollIndicator={false}
-        decelerationRate={Platform.OS === 'ios' ? 0.92 : 0.98}
+        decelerationRate="fast"
         snapToInterval={DRUM_W}
         snapToAlignment="start"
         contentContainerStyle={{ paddingHorizontal: pad }}
@@ -262,7 +262,6 @@ export default function HomeScreen({ profile, onStartFreeRun, onAcceptChallenge,
         <Text style={[s.wlNum, w > 0 && s.winColor]}>{w}W</Text>
         <Text style={s.wlSep}> / </Text>
         <Text style={[s.wlNum, l > 0 && s.lossColor]}>{l}L</Text>
-        <Text style={s.wlSep}> / 0D</Text>
       </Text>
     )
   }
@@ -635,7 +634,7 @@ const s = StyleSheet.create({
   section:         { paddingHorizontal: S.lg, marginTop: S.sm },
   sectionHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.sm },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  sectionTitle:    { color: C.textSub, fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  sectionTitle:    { color: C.textSub, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   badge:           { backgroundColor: C.card, borderRadius: R.full, paddingHorizontal: 8, paddingVertical: 2 },
   badgeText:       { color: C.text, fontSize: 11, fontWeight: '700' },
   viewAll:         { color: C.textSub, fontSize: 13 },
@@ -659,7 +658,7 @@ const s = StyleSheet.create({
 
   // Fixed footer — timer + play button, always above the tab bar
   footer:          { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, paddingHorizontal: S.lg, paddingTop: S.xs, borderTopWidth: 0.5, borderTopColor: C.border },
-  footerTimerLabel:{ color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textAlign: 'center', marginBottom: 0 },
+  footerTimerLabel:{ color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginBottom: 0 },
 
   // Play button
   playBtn:         { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 18, alignItems: 'center', marginTop: S.xs },

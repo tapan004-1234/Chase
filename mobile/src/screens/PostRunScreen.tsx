@@ -306,7 +306,7 @@ const s = StyleSheet.create({
 
   // Post-save challenge section
   challengeSection:      { marginTop: S.lg, marginBottom: S.sm },
-  challengeSectionTitle: { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 2 },
+  challengeSectionTitle: { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
   challengeSectionSub:   { color: C.textMuted, fontSize: 13, marginBottom: S.md },
   friendRow:             { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: S.sm },
   friendInfo:            { flex: 1 },

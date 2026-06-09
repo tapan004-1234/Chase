@@ -122,7 +122,6 @@ export default function ProfileScreen({ profile, onSignOut }: Props) {
             <Text style={[s.wlNum, item.wins > 0 && s.win]}>{item.wins}W</Text>
             <Text style={s.wlSep}> / </Text>
             <Text style={[s.wlNum, item.losses > 0 && s.loss]}>{item.losses}L</Text>
-            <Text style={s.wlSep}> / 0D</Text>
           </View>
         </View>
         {total > 0 && (
@@ -282,7 +281,7 @@ const s = StyleSheet.create({
 
   // Friend requests
   requestsSection:  { paddingHorizontal: S.lg, marginBottom: S.md },
-  sectionTitle:     { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: S.sm, fontFamily: F.bodyBold },
+  sectionTitle:     { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: S.sm, fontFamily: F.bodyBold },
   requestRow:       { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 8 },
   requestName:      { color: C.text, fontSize: 15, fontWeight: '600' },
   reqBtn:           { borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 14 },
