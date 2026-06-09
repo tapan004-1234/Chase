@@ -21,9 +21,9 @@ interface Props {
 
 function screenBg(delta: number | null, recording: boolean): string {
   if (!recording || delta === null) return C.bg
-  if (delta > 100)  return C.bg
-  if (delta >= -50) return C.stateOrange
-  return C.stateRed
+  if (delta > 100) return C.bg
+  if (delta >= 0)  return C.stateOrange  // within 100m but still ahead/even: warning
+  return C.stateRed                       // behind ghost: red
 }
 
 function deltaColor(delta: number | null): string {

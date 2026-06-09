@@ -72,12 +72,15 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
     if (gameOverRef.current) return
     gameOverRef.current = true
     setGameOver(true)
-    stopRun()
+    void stopRun()
     setOutcome(result)
   }
 
-  // Start recording on mount
-  useEffect(() => { startRun() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Start recording on mount; stop if component unmounts without game ending (GPS leak guard)
+  useEffect(() => {
+    startRun()
+    return () => { void stopRun() }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer
   useEffect(() => {
