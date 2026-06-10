@@ -478,8 +478,7 @@ export default function App() {
   const handleProfileRefresh = useCallback(() => {
     if (profile?.id) {
       profileLoading.current = false  // allow re-fetch
-      loadProfile(profile.id)
-      loadGhostScore(profile.id)
+      loadProfile(profile.id)  // loadProfile also calls loadGhostScore internally
     }
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 

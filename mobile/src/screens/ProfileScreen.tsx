@@ -89,7 +89,7 @@ export default function ProfileScreen({ profile, ghostScore, onSignOut }: Props)
 
       supabase.from('bounty_challenges').select('*', { count: 'exact', head: true })
         .or(`challenger_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
-        .eq('status', 'complete'),
+        .eq('status', 'completed'),
 
       supabase.from('tag_challenges')
         .select('*, police:profiles!police_id(id, username, tag_rating), thief:profiles!thief_id(id, username, tag_rating)')
@@ -99,7 +99,7 @@ export default function ProfileScreen({ profile, ghostScore, onSignOut }: Props)
       supabase.from('bounty_challenges')
         .select('*, challenger:profiles!challenger_id(id, username, bounty_rating), opponent:profiles!opponent_id(id, username, bounty_rating)')
         .or(`challenger_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
-        .eq('status', 'complete')
+        .eq('status', 'completed')
         .order('created_at', { ascending: false }),
 
       supabase.from('ghost_runs')

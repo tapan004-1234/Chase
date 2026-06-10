@@ -103,8 +103,8 @@ const s = StyleSheet.create({
   logoRest:   { fontSize: 72, color: C.text },
 
   body:       { paddingHorizontal: S.lg },
-  title:      { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.sm, fontFamily: F.display },
-  sub:        { color: C.textMuted, fontSize: 14, marginBottom: S.xl, lineHeight: 20, fontFamily: F.body },
+  title:      { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.sm, fontFamily: F.bodyBold },
+  sub:        { color: C.textSub, fontSize: 14, marginBottom: S.xl, lineHeight: 20, fontFamily: F.body },
 
   input:      {
     backgroundColor: C.card, color: C.text, borderRadius: R.md,

@@ -82,10 +82,23 @@ export default function BountyPostRunScreen({ record, params, onDone }: Props) {
       .single()
 
     if (runErr || !runData) {
+      // Release the claim so someone else can still accept this bounty
+      await supabase
+        .from('bounty_challenges')
+        .update({ opponent_id: null })
+        .eq('id', params.bountyId)
+        .eq('opponent_id', user.id)
+        .eq('status', 'pending')
       setClaimState('error')
       setClaimError(runErr?.message ?? 'Failed to save run')
       return
     }
+
+    // ── Fetch pre-trigger ratings BEFORE completing (trigger fires on status='completed') ──
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, bounty_rating')
+      .in('id', [user.id, params.challengerUserId])
 
     // ── Step 3: Complete challenge — guarded by opponent_id = uid ─────────
     const { data: completeData } = await supabase
@@ -93,7 +106,7 @@ export default function BountyPostRunScreen({ record, params, onDone }: Props) {
       .update({
         opponent_run_id: runData.id,
         winner_id:       isWin ? user.id : params.challengerUserId,
-        status:          'complete',
+        status:          'completed',
       })
       .eq('id', params.bountyId)
       .eq('opponent_id', user.id)
@@ -105,12 +118,6 @@ export default function BountyPostRunScreen({ record, params, onDone }: Props) {
       setClaimError('Could not finalize challenge')
       return
     }
-
-    // ── Fetch both ratings for ELO delta display ──────────────────────────
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, bounty_rating')
-      .in('id', [user.id, params.challengerUserId])
 
     if (profiles && profiles.length >= 1) {
       const me    = profiles.find(p => p.id === user.id)
@@ -129,10 +136,12 @@ export default function BountyPostRunScreen({ record, params, onDone }: Props) {
   // ── Full-screen result splash ─────────────────────────────────────────
   if (!showStats) {
     const isClaiming = claimState === 'claiming' || claimState === 'idle'
+    // race_lost = someone else claimed first — not a win or loss, use neutral dark bg
+    const resultBg = claimState === 'race_lost' ? C.cardDeep : cardBg
 
     return (
-      <View style={[s.resultRoot, { backgroundColor: cardBg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <StatusBar barStyle="light-content" backgroundColor={cardBg} />
+      <View style={[s.resultRoot, { backgroundColor: resultBg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <StatusBar barStyle="light-content" backgroundColor={resultBg} />
 
         <View style={s.resultBadgeRow}>
           <View style={s.bountyBadge}>
@@ -149,12 +158,12 @@ export default function BountyPostRunScreen({ record, params, onDone }: Props) {
             </>
           ) : claimState === 'error' ? (
             <>
-              <Text style={s.resultTitle}>{isWin ? 'You Won!' : 'Busted!'}</Text>
+              <Text style={s.resultTitle}>{isWin ? 'YOU WON' : 'BUSTED!'}</Text>
               <Text style={s.resultSub}>{claimError ?? 'Could not record result'}</Text>
             </>
           ) : (
             <>
-              <Text style={s.resultTitle}>{isWin ? 'You Won!' : 'Busted!'}</Text>
+              <Text style={s.resultTitle}>{isWin ? 'YOU WON' : 'BUSTED!'}</Text>
               <Text style={s.resultNumber}>{record.distanceKm.toFixed(2)} km</Text>
               {isClaiming
                 ? <ActivityIndicator color="rgba(255,255,255,0.6)" style={{ marginTop: S.lg }} />

@@ -107,7 +107,7 @@ export default function PostRunScreen({ record, ghost, bountyId, alreadySavedRun
   const cardBg   = ghost ? (isWin ? C.stateBlue : C.stateRed) : C.card
   const resultLabel = ghost ? (isWin ? 'Escape' : 'Busted!') : 'Run Complete'
   const deltaLabel  = ghost
-    ? (isWin ? `+${fmtDelta(delta)}` : `${Math.round(Math.abs(delta))}`)
+    ? (isWin ? `+${fmtDelta(delta)}` : `-${fmtDelta(delta)}`)
     : record.distanceKm.toFixed(2) + ' km'
 
   if (!showStats && ghost) {

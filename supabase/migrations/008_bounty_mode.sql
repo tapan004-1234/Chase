@@ -2,6 +2,11 @@
 -- Adds bounty_rating to profiles, creates bounty_challenges table with RLS,
 -- adds ELO trigger for bounty completions, and drops the old ghost friend-challenge trigger.
 
+-- ── 0. Extend game_mode enum to include 'bounty' ────────────────────────────
+-- ratings_history.mode is typed as game_mode; the bounty ELO trigger inserts
+-- mode='bounty', so the enum must include it before the trigger is created.
+ALTER TYPE game_mode ADD VALUE IF NOT EXISTS 'bounty';
+
 -- ── 1. Add bounty_rating to profiles ────────────────────────────────────────
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS bounty_rating INTEGER NOT NULL DEFAULT 1200;
@@ -86,7 +91,25 @@ CREATE TRIGGER on_bounty_challenge_completed
   AFTER UPDATE ON bounty_challenges
   FOR EACH ROW EXECUTE FUNCTION public.handle_bounty_challenge_complete();
 
--- ── 4. Drop the old ghost friend-challenge ELO trigger ──────────────────────
+-- ── 4. Allow reading ghost_runs referenced by bounty_challenges ─────────────
+-- Migration 002 only opened ghost_runs to opponents in ghost_challenges.
+-- Bounty acceptors need to read the challenger's run to render the bounty board;
+-- any authenticated user can see a run that is the basis of a public bounty.
+CREATE POLICY "ghost_runs_select_via_bounty"
+  ON ghost_runs FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM bounty_challenges
+      WHERE bounty_challenges.challenger_run_id = ghost_runs.id
+        AND (
+          bounty_challenges.is_public = true
+          OR bounty_challenges.opponent_id = auth.uid()
+          OR bounty_challenges.challenger_id = auth.uid()
+        )
+    )
+  );
+
+-- ── 5. Drop the old ghost friend-challenge ELO trigger ──────────────────────
 -- ghost_challenges was used for friend-challenges (now replaced by bounty_challenges).
 -- Ghost self-challenges never wrote to ghost_challenges, so this trigger was
 -- only firing for the friend-challenge flow we're retiring.
