@@ -79,7 +79,7 @@ export default function GhostPreStartScreen({ run, params, onBack, onStart }: Pr
         <View style={s.divider} />
 
         {/* Icon metric rows */}
-        <StatRow color={C.green}  icon="time-outline"        value={`+ ${fmtTime(run.duration_s)}`} />
+        <StatRow color={C.green}  icon="time-outline"        value={fmtTime(run.duration_s)} />
         <StatRow color={C.red}    icon="location-outline"    value={`${run.distance_km.toFixed(2)} km away`} />
         <StatRow color={C.orange} icon="speedometer-outline" value={fmtPace(run.avg_pace_s_per_km)} />
       </View>
