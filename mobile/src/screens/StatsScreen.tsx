@@ -39,7 +39,8 @@ interface Stats {
   totalKm:        number
   tagHistory:     { rating: number; created_at: string }[]
   bountyHistory:  { rating: number; created_at: string }[]
-  ghostRuns:      GhostRun[]
+  ghostRuns:      GhostRun[]   // all-time — used for score curve
+  since:          string | null // period start — used to filter PBs
 }
 
 export default function StatsScreen({ profile, ghostScore }: Props) {
@@ -62,7 +63,7 @@ export default function StatsScreen({ profile, ghostScore }: Props) {
     let bq = supabase.from('bounty_challenges')
       .select('*', { count: 'exact', head: true })
       .or(`challenger_id.eq.${profile.id},opponent_id.eq.${profile.id}`)
-      .eq('status', 'complete')
+      .eq('status', 'completed')
     if (since) bq = bq.gte('created_at', since)
 
     let rq = supabase.from('ghost_runs').select('distance_km').eq('user_id', profile.id)
@@ -104,6 +105,7 @@ export default function StatsScreen({ profile, ghostScore }: Props) {
       tagHistory:    (tagHist    ?? []).map(h => ({ rating: h.new_rating, created_at: h.created_at })),
       bountyHistory: (bountyHist ?? []).map(h => ({ rating: h.new_rating, created_at: h.created_at })),
       ghostRuns:     (ghostRuns  ?? []) as GhostRun[],
+      since,
     })
     setLoading(false)
   }, [profile.id, period])
@@ -190,7 +192,8 @@ export default function StatsScreen({ profile, ghostScore }: Props) {
 
   const tabColor: Record<StatTab, string> = { Tag: C.red, Bounty: C.primary, Ghost: C.you }
 
-  function GhostPBs({ runs }: { runs: GhostRun[] }) {
+  function GhostPBs({ allRuns, since }: { allRuns: GhostRun[]; since: string | null }) {
+    const runs = since ? allRuns.filter(r => r.created_at >= since) : allRuns
     if (runs.length === 0) {
       return <View style={spark.empty}><Text style={spark.emptyText}>No runs yet</Text></View>
     }
@@ -277,7 +280,7 @@ export default function StatsScreen({ profile, ghostScore }: Props) {
               </View>
 
               {/* PBs */}
-              <GhostPBs runs={stats.ghostRuns} />
+              <GhostPBs allRuns={stats.ghostRuns} since={stats.since} />
             </>
           ) : (
             <>

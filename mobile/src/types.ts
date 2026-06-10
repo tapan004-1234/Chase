@@ -46,6 +46,7 @@ export interface GhostRun {
   distance_km: number
   duration_s: number
   avg_pace_s_per_km: number
+  gps_points?: GPSPoint[]
   created_at: string
 }
 
