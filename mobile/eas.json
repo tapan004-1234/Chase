@@ -16,17 +16,11 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
-      },
-      "env": {
-        "GOOGLE_MAPS_API_KEY": ""
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      },
-      "env": {
-        "GOOGLE_MAPS_API_KEY": ""
       }
     }
   },

@@ -48,6 +48,12 @@
         }
       ],
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a29a1431-8579-4e07-8e1c-c3110e43224e"
+      }
+    },
+    "owner": "tapan0004"
   }
 }
