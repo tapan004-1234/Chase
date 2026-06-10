@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -128,8 +128,10 @@ export default function TagPreGameScreen({ lobbyCode, isHost: isHostProp, durati
 
   if (loading || !lobby) {
     return (
-      <View style={[s.root, { paddingTop: insets.top }]}>
+      <View style={[s.root, s.center, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="light-content" backgroundColor={C.bg} />
         <ActivityIndicator color={C.text} size="large" />
+        <Text style={s.loadingText}>Loading lobby…</Text>
       </View>
     )
   }
@@ -145,6 +147,8 @@ export default function TagPreGameScreen({ lobbyCode, isHost: isHostProp, durati
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={onCancel} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -283,8 +287,8 @@ function PlayerRow({
         </TouchableOpacity>
       )}
       {!isMe && profile && (
-        <View style={[pr.readyBtn, isReady && pr.readyBtnOn, { opacity: 0.9 }]}>
-          <Text style={pr.readyBtnText}>{isReady ? 'Ready' : 'Not Ready'}</Text>
+        <View style={[pr.readyIndicator, isReady && pr.readyIndicatorOn]}>
+          <Text style={pr.readyBtnText}>{isReady ? 'Ready' : 'Waiting'}</Text>
         </View>
       )}
     </View>
@@ -292,19 +296,24 @@ function PlayerRow({
 }
 
 const pr = StyleSheet.create({
-  row:        { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: R.md, padding: S.md, gap: S.md, marginBottom: S.sm },
-  info:       { flex: 1 },
-  roleLabel:  { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
-  name:       { color: C.text, fontSize: 16, fontWeight: '600' },
-  rating:     { color: C.textSub, fontWeight: '400', fontSize: 14 },
-  empty:      { color: C.textMuted, fontSize: 15 },
-  readyBtn:   { backgroundColor: C.cardDeep, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 10 },
-  readyBtnOn: { backgroundColor: C.green },
-  readyBtnText:{ color: C.text, fontWeight: '700', fontSize: 13 },
+  row:            { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: R.md, padding: S.md, gap: S.md, marginBottom: S.sm },
+  info:           { flex: 1 },
+  roleLabel:      { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  name:           { color: C.text, fontSize: 16, fontWeight: '600' },
+  rating:         { color: C.textSub, fontWeight: '400', fontSize: 14 },
+  empty:          { color: C.textMuted, fontSize: 15 },
+  readyBtn:       { backgroundColor: C.cardDeep, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 14 },
+  readyBtnOn:     { backgroundColor: C.green },
+  readyBtnText:   { color: C.text, fontWeight: '700', fontSize: 13 },
+  readyIndicator: { borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 14, borderWidth: 1, borderColor: C.border },
+  readyIndicatorOn: { borderColor: C.green, backgroundColor: 'rgba(34, 197, 94, 0.10)' },
 })
 
 const s = StyleSheet.create({
   root:         { flex: 1, backgroundColor: C.bg },
+  center:       { justifyContent: 'center', alignItems: 'center' },
+  loadingText:  { color: C.textSub, fontSize: 14, marginTop: S.sm },
+
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: S.lg, paddingVertical: S.md },
   lobbyCodeText:{ color: C.textSub, fontSize: 14, fontWeight: '700', letterSpacing: 2 },
 
@@ -314,7 +323,7 @@ const s = StyleSheet.create({
 
   content:      { flex: 1, paddingHorizontal: S.lg },
 
-  statsCard:    { backgroundColor: C.card, borderRadius: R.lg, paddingHorizontal: S.md, paddingVertical: S.sm, marginBottom: S.md },
+  statsCard:    { backgroundColor: C.card, borderRadius: R.lg, paddingHorizontal: S.md, paddingVertical: S.sm, marginBottom: S.md, borderWidth: 1, borderColor: C.border },
 
   waitingBox:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: S.md },
   waitingText:  { color: C.textSub, fontSize: 14 },
@@ -323,6 +332,6 @@ const s = StyleSheet.create({
   startBtn:     { backgroundColor: C.red, borderRadius: R.full, paddingVertical: 18, alignItems: 'center' },
   startBtnDisabled: { opacity: 0.4 },
   startBtnText: { color: C.text, fontSize: 20, fontWeight: '700', fontFamily: F.display },
-  waitingStartBox:  { backgroundColor: C.card, borderRadius: R.full, paddingVertical: 18, alignItems: 'center' },
-  waitingStartText: { color: C.textSub, fontSize: 16 },
+  waitingStartBox:  { backgroundColor: C.card, borderRadius: R.lg, paddingVertical: S.md, paddingHorizontal: S.md, alignItems: 'center', borderWidth: 1, borderColor: C.border },
+  waitingStartText: { color: C.textSub, fontSize: 15 },
 })

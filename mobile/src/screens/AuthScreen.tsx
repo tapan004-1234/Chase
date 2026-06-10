@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Modal, ScrollView, Alert,
+  Platform, Modal, ScrollView, Alert, StatusBar,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -20,8 +20,7 @@ interface Props { onAuth: () => void }
 // In Expo Go dev: exp://192.168.x.x:8081/--/
 // In a standalone build: your custom scheme (e.g. chase://)
 const REDIRECT_URI = makeRedirectUri()
-// eslint-disable-next-line no-console
-console.log('[Chase] OAuth redirect URI:', REDIRECT_URI)
+if (__DEV__) console.log('[Chase] OAuth redirect URI:', REDIRECT_URI) // eslint-disable-line no-console
 
 async function createSessionFromUrl(url: string) {
   // Check for OAuth error first (works for both PKCE and implicit flows)
@@ -84,6 +83,18 @@ export default function AuthScreen({ onAuth }: Props) {
   }
 
   // ── Email / password ───────────────────────────────────────────────────
+  async function sendPasswordReset() {
+    const trimmed = email.trim()
+    if (!trimmed) { setError('Enter your email first.'); return }
+    setLoading('email'); setError(null)
+    const { error: e } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: REDIRECT_URI,
+    })
+    setLoading(null)
+    if (e) { setError(e.message); return }
+    Alert.alert('Check your email', 'We sent a password reset link.')
+  }
+
   async function submitEmail() {
     if (!email.trim() || !password) { setError('Email and password are required'); return }
     setLoading('email'); setError(null)
@@ -102,6 +113,7 @@ export default function AuthScreen({ onAuth }: Props) {
 
   return (
     <View style={[s.root, { paddingTop: insets.top, paddingBottom: insets.bottom + S.lg }]}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
       {/* Logo */}
       <View style={s.logoWrap}>
@@ -173,7 +185,8 @@ export default function AuthScreen({ onAuth }: Props) {
       </View>
 
       {/* Email / password sheet */}
-      <Modal visible={showEmail} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={showEmail} animationType="slide" presentationStyle="pageSheet"
+        onRequestClose={() => { setShowEmail(false); setError(null); setEmail(''); setPassword('') }}>
         <KeyboardAvoidingView
           style={s.modal}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -182,7 +195,7 @@ export default function AuthScreen({ onAuth }: Props) {
             contentContainerStyle={s.modalInner}
             keyboardShouldPersistTaps="handled"
           >
-            <TouchableOpacity onPress={() => { setShowEmail(false); setError(null) }} style={s.closeBtn}>
+            <TouchableOpacity onPress={() => { setShowEmail(false); setError(null); setEmail(''); setPassword('') }} style={s.closeBtn}>
               <Ionicons name="close" size={24} color={C.text} />
             </TouchableOpacity>
 
@@ -207,6 +220,17 @@ export default function AuthScreen({ onAuth }: Props) {
               secureTextEntry
               autoComplete={isSignIn ? 'current-password' : 'new-password'}
             />
+
+            {isSignIn && (
+              <TouchableOpacity
+                onPress={sendPasswordReset}
+                disabled={loading === 'email'}
+                hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
+                style={{ alignSelf: 'flex-end', marginBottom: S.sm }}
+              >
+                <Text style={s.forgotText}>Forgot password?</Text>
+              </TouchableOpacity>
+            )}
 
             {error ? <Text style={s.error}>{error}</Text> : null}
 
@@ -242,7 +266,7 @@ const s = StyleSheet.create({
 
   // Buttons
   buttons:        { paddingHorizontal: S.lg, gap: S.md },
-  heading:        { color: C.text, fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: S.sm, fontFamily: F.bodyBold },
+  heading:        { color: C.text, fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: S.sm, fontFamily: F.displayBold },
   ssoBtn:         {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: C.border, borderRadius: R.full,
@@ -261,7 +285,7 @@ const s = StyleSheet.create({
   modal:          { flex: 1, backgroundColor: C.bg },
   modalInner:     { padding: S.lg, paddingTop: S.xl },
   closeBtn:       { alignSelf: 'flex-start', marginBottom: S.lg, padding: 10 },
-  modalTitle:     { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.xl, fontFamily: F.bodyBold },
+  modalTitle:     { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.xl, fontFamily: F.display },
   input:          {
     backgroundColor: C.card, color: C.text, borderRadius: R.md,
     paddingHorizontal: S.md, paddingVertical: 14, fontSize: 16,
@@ -273,5 +297,6 @@ const s = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginTop: S.md,
   },
   submitText:     { color: C.text, fontSize: 16, fontWeight: '700', fontFamily: F.bodyBold },
+  forgotText:     { color: C.primary, fontSize: 13, fontFamily: F.body },
   switchMode:     { color: C.textSub, textAlign: 'center', marginTop: S.lg, fontSize: 14, fontFamily: F.body },
 })

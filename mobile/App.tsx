@@ -21,27 +21,37 @@ import * as Notifications from 'expo-notifications'
 
 import { supabase } from './src/lib/supabase'
 import { C } from './src/theme'
-import type { GhostChallenge, GhostParameters, GhostRun, Profile, RunRecord, TagParameters } from './src/types'
+import type { BountyParameters, GhostParameters, GhostRun, Profile, RunRecord, TagParameters } from './src/types'
+import { computeGhostScore } from './src/lib/ghostScore'
 
 import AuthScreen        from './src/screens/AuthScreen'
+import UsernameScreen    from './src/screens/UsernameScreen'
 import HomeScreen        from './src/screens/HomeScreen'
 import StatsScreen       from './src/screens/StatsScreen'
 import ProfileScreen     from './src/screens/ProfileScreen'
-import ActiveRunScreen   from './src/screens/ActiveRunScreen'
-import PostRunScreen     from './src/screens/PostRunScreen'
-import TagPreGameScreen  from './src/screens/TagPreGameScreen'
-import TagActiveRunScreen from './src/screens/TagActiveRunScreen'
+import ActiveRunScreen      from './src/screens/ActiveRunScreen'
+import PostRunScreen        from './src/screens/PostRunScreen'
+import GhostPreStartScreen  from './src/screens/GhostPreStartScreen'
+import TagPreGameScreen     from './src/screens/TagPreGameScreen'
+import TagActiveRunScreen    from './src/screens/TagActiveRunScreen'
+import BountyPreStartScreen  from './src/screens/BountyPreStartScreen'
+import BountyActiveRunScreen from './src/screens/BountyActiveRunScreen'
+import BountyPostRunScreen   from './src/screens/BountyPostRunScreen'
 
 // ── Navigator param types ──────────────────────────────────────────────────
 
 type HomeStackParams = {
-  Home:         undefined
-  ActiveRun:    { ghost?: GhostParameters }
-  PostRun:      { record: RunRecord; ghost?: GhostParameters; alreadySavedRunId?: string }
+  Home:            undefined
+  GhostPreStart:   { run: GhostRun; params: GhostParameters }
+  ActiveRun:       { ghost?: GhostParameters; bountyId?: string }
+  PostRun:         { record: RunRecord; ghost?: GhostParameters; bountyId?: string; alreadySavedRunId?: string }
   // isHost and durationMinutes are optional so deep-linked guests can navigate here
   // without knowing those values upfront (TagPreGameScreen loads them from DB)
-  TagPreGame:   { lobbyCode: string; isHost?: boolean; durationMinutes?: number }
-  TagActiveRun: { params: TagParameters }
+  TagPreGame:      { lobbyCode: string; isHost?: boolean; durationMinutes?: number }
+  TagActiveRun:    { params: TagParameters }
+  BountyPreStart:  { params: BountyParameters }
+  BountyActiveRun: { params: BountyParameters }
+  BountyPostRun:   { record: RunRecord; params: BountyParameters }
 }
 
 // Deep-link config: chase://lobby/ABCDEF → HomeTab → TagPreGame
@@ -94,9 +104,11 @@ const Tab       = createBottomTabNavigator<RootTabParams>()
 
 function HomeStackNavigator({
   profile,
+  ghostScore,
   onProfileRefresh,
 }: {
-  profile: Profile
+  profile:          Profile
+  ghostScore:       number
   onProfileRefresh: () => void
 }) {
   return (
@@ -105,39 +117,11 @@ function HomeStackNavigator({
         {({ navigation }) => (
           <HomeScreen
             profile={profile}
+            ghostScore={ghostScore}
             onStartFreeRun={() => navigation.navigate('ActiveRun', {})}
-            onAcceptChallenge={(c: GhostChallenge) => {
-              if (!c.challenger_run) {
-                Alert.alert('Error', 'Challenge run data missing.')
-                return
-              }
-              navigation.navigate('ActiveRun', {
-                ghost: {
-                  challengeId:              c.id,
-                  challengerUserId:         c.challenger_id,
-                  challengeDistanceKm:      c.challenger_run.distance_km,
-                  challengeDurationSeconds: c.challenger_run.duration_s,
-                  opponentUsername:         c.challenger?.username ?? 'Opponent',
-                },
-              })
-            }}
-            onChallengeFriend={async (friend: Profile, latestRun: GhostRun | null) => {
-              if (!latestRun) {
-                Alert.alert('No run yet', 'Record a run first, then challenge a friend with it.')
-                return
-              }
-              const { data: { user } } = await supabase.auth.getUser()
-              if (!user) return
-              const expires = new Date(Date.now() + 7 * 86400_000).toISOString()
-              const { error } = await supabase.from('ghost_challenges').insert({
-                challenger_id:     user.id,
-                opponent_id:       friend.id,
-                challenger_run_id: latestRun.id,
-                expires_at:        expires,
-              })
-              if (error) Alert.alert('Error', error.message)
-              else Alert.alert('Challenge sent!', `${friend.username} has been challenged.`)
-            }}
+            onStartBountyRun={(params: BountyParameters) =>
+              navigation.navigate('BountyPreStart', { params })
+            }
             onStartTag={(tagParams: TagParameters) =>
               navigation.navigate('TagPreGame', {
                 lobbyCode:       tagParams.lobbyCode,
@@ -146,17 +130,27 @@ function HomeStackNavigator({
               })
             }
             onViewPastRun={(run) =>
-              navigation.navigate('PostRun', {
-                record: {
-                  distanceKm:          run.distance_km,
-                  durationSeconds:     run.duration_s,
-                  avgPaceSecondsPerKm: run.avg_pace_s_per_km,
-                  gpsPoints:           [],
-                  startedAt:           run.created_at,
-                  endedAt:             run.created_at,
+              navigation.navigate('GhostPreStart', {
+                run,
+                params: {
+                  challengeDistanceKm:      run.distance_km,
+                  challengeDurationSeconds: run.duration_s,
+                  opponentUsername:         'Past You',
                 },
-                alreadySavedRunId: run.id,
               })
+            }
+          />
+        )}
+      </HomeStack.Screen>
+
+      <HomeStack.Screen name="GhostPreStart">
+        {({ route, navigation }) => (
+          <GhostPreStartScreen
+            run={route.params.run}
+            params={route.params.params}
+            onBack={() => navigation.goBack()}
+            onStart={(params: GhostParameters) =>
+              navigation.replace('ActiveRun', { ghost: params })
             }
           />
         )}
@@ -207,8 +201,57 @@ function HomeStackNavigator({
         {({ route, navigation }) => (
           <TagActiveRunScreen
             params={route.params.params}
-            onEnd={(_outcome) => navigation.navigate('Home')}
+            onEnd={async (outcome) => {
+              const p        = route.params.params
+              const policeId = p.myRole === 'police' ? profile!.id : p.opponentProfile.id
+              const thiefId  = p.myRole === 'thief'  ? profile!.id : p.opponentProfile.id
+              const winnerId = outcome === 'police_win' ? policeId : thiefId
+              // ON CONFLICT DO NOTHING: both players race to insert — first writer wins
+              await supabase.from('tag_challenges').upsert(
+                { lobby_code: p.lobbyCode, police_id: policeId, thief_id: thiefId, winner_id: winnerId },
+                { onConflict: 'lobby_code', ignoreDuplicates: true },
+              )
+              onProfileRefresh()
+              navigation.navigate('Home')
+            }}
             onCancel={() => navigation.navigate('Home')}
+          />
+        )}
+      </HomeStack.Screen>
+
+      <HomeStack.Screen name="BountyPreStart">
+        {({ route, navigation }) => (
+          <BountyPreStartScreen
+            params={route.params.params}
+            onBack={() => navigation.goBack()}
+            onStart={(params: BountyParameters) =>
+              navigation.replace('BountyActiveRun', { params })
+            }
+          />
+        )}
+      </HomeStack.Screen>
+
+      <HomeStack.Screen name="BountyActiveRun">
+        {({ route, navigation }) => (
+          <BountyActiveRunScreen
+            params={route.params.params}
+            onBack={() => navigation.goBack()}
+            onRunComplete={(record: RunRecord) =>
+              navigation.replace('BountyPostRun', { record, params: route.params.params })
+            }
+          />
+        )}
+      </HomeStack.Screen>
+
+      <HomeStack.Screen name="BountyPostRun">
+        {({ route, navigation }) => (
+          <BountyPostRunScreen
+            record={route.params.record}
+            params={route.params.params}
+            onDone={() => {
+              onProfileRefresh()
+              navigation.navigate('Home')
+            }}
           />
         )}
       </HomeStack.Screen>
@@ -220,11 +263,13 @@ function HomeStackNavigator({
 
 function MainTabs({
   profile,
+  ghostScore,
   onSignOut,
   onProfileRefresh,
 }: {
-  profile: Profile
-  onSignOut: () => void
+  profile:          Profile
+  ghostScore:       number
+  onSignOut:        () => void
   onProfileRefresh: () => void
 }) {
   const [pendingCount, setPendingCount] = useState(0)
@@ -299,18 +344,18 @@ function MainTabs({
       })}
     >
       <Tab.Screen name="HomeTab" options={{ tabBarLabel: 'Home' }}>
-        {() => <HomeStackNavigator profile={profile} onProfileRefresh={onProfileRefresh} />}
+        {() => <HomeStackNavigator profile={profile} ghostScore={ghostScore} onProfileRefresh={onProfileRefresh} />}
       </Tab.Screen>
 
       <Tab.Screen name="StatsTab" options={{ tabBarLabel: 'Stats' }}>
-        {() => <StatsScreen profile={profile} />}
+        {() => <StatsScreen profile={profile} ghostScore={ghostScore} />}
       </Tab.Screen>
 
       <Tab.Screen name="ProfileTab" options={{
         tabBarLabel: profile.username,
         tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
       }}>
-        {() => <ProfileScreen profile={profile} onSignOut={onSignOut} />}
+        {() => <ProfileScreen profile={profile} ghostScore={ghostScore} onSignOut={onSignOut} />}
       </Tab.Screen>
     </Tab.Navigator>
   )
@@ -332,9 +377,22 @@ export default function App() {
   const [session,      setSession]      = useState(false)
   const [profile,      setProfile]      = useState<Profile | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [ghostScore,   setGhostScore]   = useState(0)
 
   // Guard against concurrent loadProfile calls (getSession + onAuthStateChange both fire on startup)
   const profileLoading = React.useRef(false)
+
+  async function loadGhostScore(userId: string) {
+    const { data } = await supabase
+      .from('ghost_runs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (data) {
+      const { score } = computeGhostScore(data as GhostRun[])
+      setGhostScore(score)
+    }
+  }
 
   async function loadProfile(userId: string) {
     if (profileLoading.current) return
@@ -348,6 +406,7 @@ export default function App() {
       if (data) {
         setProfile(data as Profile)
         registerPushToken(userId)
+        loadGhostScore(userId)
         return
       }
 
@@ -420,6 +479,7 @@ export default function App() {
     if (profile?.id) {
       profileLoading.current = false  // allow re-fetch
       loadProfile(profile.id)
+      loadGhostScore(profile.id)
     }
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -456,7 +516,9 @@ export default function App() {
       <NavigationContainer linking={linking}>
         {!session
           ? <AuthScreen onAuth={() => {}} />
-          : <MainTabs profile={profile!} onSignOut={handleSignOut} onProfileRefresh={handleProfileRefresh} />
+          : !profile?.username_set
+            ? <UsernameScreen profile={profile!} onDone={handleProfileRefresh} />
+            : <MainTabs profile={profile!} ghostScore={ghostScore} onSignOut={handleSignOut} onProfileRefresh={handleProfileRefresh} />
         }
       </NavigationContainer>
     </SafeAreaProvider>

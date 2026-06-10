@@ -15,11 +15,11 @@ export interface RunRecord {
 }
 
 export interface GhostParameters {
-  challengeId: string
-  challengerUserId: string        // challenger's user ID — used to set winner_id when opponent loses
-  challengeDistanceKm: number
+  challengeId?:             string   // undefined for self-challenges (no DB row)
+  challengerUserId?:        string
+  challengeDistanceKm:      number
   challengeDurationSeconds: number
-  opponentUsername: string
+  opponentUsername:         string
 }
 
 export interface LiveRunState {
@@ -33,8 +33,10 @@ export interface LiveRunState {
 export interface Profile {
   id: string
   username: string
+  username_set: boolean
   ghost_rating: number
   tag_rating: number
+  bounty_rating: number
   apns_device_token: string | null
 }
 
@@ -62,6 +64,35 @@ export interface GhostChallenge {
   opponent?: Profile
   challenger_run?: GhostRun
 }
+
+export interface BountyChallenge {
+  id: string
+  challenger_id: string
+  opponent_id: string | null
+  challenger_run_id: string
+  opponent_run_id: string | null
+  winner_id: string | null
+  status: 'pending' | 'completed' | 'expired'
+  is_public: boolean
+  expires_at: string
+  created_at: string
+  // joined
+  challenger?: Profile
+  opponent?: Profile
+  challenger_run?: GhostRun
+}
+
+export interface BountyParameters {
+  bountyId: string
+  challengerUserId: string
+  opponentUsername: string
+  challengeDistanceKm: number
+  challengeDurationSeconds: number
+  challengerRun: GhostRun
+  isPublic: boolean
+}
+
+export type AppMode = 'Tag' | 'Bounty' | 'Ghost'
 
 export type TagRole = 'police' | 'thief'
 

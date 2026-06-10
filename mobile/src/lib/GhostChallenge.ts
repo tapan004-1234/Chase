@@ -11,3 +11,15 @@ export function evaluateGhostResult(
   if (runDistanceKm < challengeDistanceKm) return 'loss'
   return runDurationSeconds < challengeDurationSeconds ? 'win' : 'loss'
 }
+
+import type { GhostParameters } from '../types'
+
+// Guard: only write to ghost_challenges when there is a real challenge row to update.
+// Self-challenges (run-against-yourself) have no challengeId, so the DB row
+// does not exist and must not be touched.
+export function shouldUpdateGhostChallenge(
+  ghost: GhostParameters | undefined,
+  result: 'win' | 'loss' | null,
+): boolean {
+  return !!(ghost && ghost.challengeId && result)
+}

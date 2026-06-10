@@ -133,25 +133,28 @@ export function useRunRecorder() {
   }, [tick])
 
   const stopRun = useCallback(async (): Promise<RunRecord | null> => {
-    if (!startDate.current) return null
+    const start = startDate.current
+    if (!start) return null  // never started or already stopped
 
-    if (timerRef.current)    clearInterval(timerRef.current)
-    subscription.current?.remove()
+    // Null out immediately — prevents double-stop from returning a stale record
+    startDate.current = null
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    subscription.current?.remove(); subscription.current = null
     deactivateKeepAwake(KEEP_AWAKE_TAG)
     setIsRecording(false)
 
-    const endDate    = new Date()
-    const metres     = totalDistanceMetres(points.current)
-    const km         = metres / 1000
-    const durationSec = Math.floor((endDate.getTime() - startDate.current.getTime()) / 1000)
-    const avgPace    = km > 0 ? durationSec / km : 0
+    const endDate     = new Date()
+    const metres      = totalDistanceMetres(points.current)
+    const km          = metres / 1000
+    const durationSec = Math.floor((endDate.getTime() - start.getTime()) / 1000)
+    const avgPace     = km > 0 ? durationSec / km : 0
 
     return {
       distanceKm:          km,
       durationSeconds:     durationSec,
       avgPaceSecondsPerKm: avgPace,
       gpsPoints:           points.current,
-      startedAt:           startDate.current.toISOString(),
+      startedAt:           start.toISOString(),
       endedAt:             endDate.toISOString(),
     }
   }, [])

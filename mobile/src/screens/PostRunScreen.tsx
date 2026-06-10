@@ -6,28 +6,23 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '../lib/supabase'
 import { evaluateGhostResult } from '../lib/GhostChallenge'
-import Avatar from '../components/Avatar'
 import { C, F, R, S } from '../theme'
-import type { GhostParameters, Profile, RunRecord } from '../types'
+import type { GhostParameters, RunRecord } from '../types'
+import { fmtPace } from '../lib/formatters'
 
 interface Props {
   record:             RunRecord
   ghost?:             GhostParameters
+  bountyId?:          string
   alreadySavedRunId?: string   // set when navigating from past-runs list
   onDone:             () => void
 }
-
-interface Friend { profile: Profile }
 
 function pad(n: number) { return n.toString().padStart(2, '0') }
 function fmtDuration(secs: number) {
   const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60
   if (h > 0) return `${h}h ${m}m ${s}s`
   return m > 0 ? `${m}m ${s}s` : `${s}s`
-}
-function fmtPace(s: number) {
-  if (s <= 0 || !isFinite(s)) return '--:--'
-  return `${Math.floor(s / 60)}:${pad(Math.floor(s % 60))} /km`
 }
 function fmtDelta(m: number) {
   return Math.abs(m) >= 1000
@@ -44,20 +39,19 @@ function resultDelta(ghost: GhostParameters, run: RunRecord): number {
   return (ghost.challengeDistanceKm - ghostKm) * 1000
 }
 
-export default function PostRunScreen({ record, ghost, alreadySavedRunId, onDone }: Props) {
+export default function PostRunScreen({ record, ghost, bountyId, alreadySavedRunId, onDone }: Props) {
   const insets   = useSafeAreaInsets()
   const [result,    setResult]    = useState<'win' | 'loss' | null>(null)
   const [delta,     setDelta]     = useState(0)
   const [saving,    setSaving]    = useState(false)
   const [saved,     setSaved]     = useState(!!alreadySavedRunId)
   const [savedRunId, setSavedRunId] = useState<string | null>(alreadySavedRunId ?? null)
-  const [error,     setError]     = useState<string | null>(null)
+  const [error,          setError]          = useState<string | null>(null)
   // Skip the full-screen result splash when arriving from past runs (run already saved)
-  const [showStats, setShowStats] = useState(!!alreadySavedRunId)
-  // Post-save challenge flow (free runs only)
-  const [friends,   setFriends]   = useState<Friend[]>([])
-  const [challenging, setChallenging] = useState<string | null>(null) // friend.profile.id
-  const [challenged,  setChallenged]  = useState<Set<string>>(new Set())
+  const [showStats,      setShowStats]      = useState(!!alreadySavedRunId)
+  const [bountyPosted,   setBountyPosted]   = useState(false)
+  const [bountyPosting,  setBountyPosting]  = useState(false)
+  const [bountyPostError, setBountyPostError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!ghost) return
@@ -68,24 +62,6 @@ export default function PostRunScreen({ record, ghost, alreadySavedRunId, onDone
     setResult(r)
     setDelta(resultDelta(ghost, record))
   }, [ghost, record])
-
-  // Load friends list once a free run is saved (so user can immediately challenge)
-  useEffect(() => {
-    if (!saved || ghost) return
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase
-        .from('friend_requests')
-        .select('from_profile:profiles!from_id(*), to_profile:profiles!to_id(*)')
-        .or(`from_id.eq.${user.id},to_id.eq.${user.id}`)
-        .eq('status', 'accepted')
-      const list: Friend[] = ((data ?? []) as any[]).map(req => ({
-        profile: req.from_profile.id === user.id ? req.to_profile : req.from_profile,
-      }))
-      setFriends(list)
-    })()
-  }, [saved, ghost])
 
   async function save() {
     setSaving(true); setError(null)
@@ -104,41 +80,26 @@ export default function PostRunScreen({ record, ghost, alreadySavedRunId, onDone
     if (e1 || !runData) { setError(e1?.message ?? 'Save failed'); setSaving(false); return }
 
     setSavedRunId(runData.id)
-
-    if (ghost && result) {
-      const { error: e2 } = await supabase
-        .from('ghost_challenges')
-        .update({
-          opponent_run_id: runData.id,
-          winner_id: result === 'win' ? user.id : ghost.challengerUserId,
-          status: 'completed',
-        })
-        .eq('id', ghost.challengeId)
-        .eq('opponent_id', user.id)
-      if (e2) { setError(e2.message); setSaving(false); return }
-    }
-
     setSaved(true); setSaving(false)
   }
 
-  async function challengeFriend(friend: Profile) {
+  async function postAsBounty() {
     if (!savedRunId) return
-    setChallenging(friend.id)
+    setBountyPosting(true); setBountyPostError(null)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setChallenging(null); return }
+    if (!user) { setBountyPosting(false); return }
     const expires = new Date(Date.now() + 7 * 86400_000).toISOString()
-    const { error } = await supabase.from('ghost_challenges').insert({
+    const { error } = await supabase.from('bounty_challenges').insert({
       challenger_id:     user.id,
-      opponent_id:       friend.id,
       challenger_run_id: savedRunId,
+      is_public:         true,
+      opponent_id:       null,
       expires_at:        expires,
+      status:            'pending',
     })
-    setChallenging(null)
-    if (error) {
-      Alert.alert('Error', error.message)
-    } else {
-      setChallenged(prev => new Set(prev).add(friend.id))
-    }
+    setBountyPosting(false)
+    if (error) setBountyPostError(error.message)
+    else setBountyPosted(true)
   }
 
   // ── Full-screen result card ────────────────────────────────────────────
@@ -152,7 +113,7 @@ export default function PostRunScreen({ record, ghost, alreadySavedRunId, onDone
   if (!showStats && ghost) {
     return (
       <View style={[s.resultRoot, { backgroundColor: cardBg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="light-content" backgroundColor={cardBg} />
         <View style={s.resultCenter}>
           <Text style={s.resultTitle}>{resultLabel}</Text>
           <Text style={s.resultNumber}>{deltaLabel}</Text>
@@ -170,7 +131,7 @@ export default function PostRunScreen({ record, ghost, alreadySavedRunId, onDone
       style={s.statsRoot}
       contentContainerStyle={[s.statsInner, { paddingTop: insets.top + S.md, paddingBottom: insets.bottom + S.lg }]}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
       {ghost && (
         <View style={[s.miniBadge, { backgroundColor: cardBg }]}>
@@ -210,42 +171,29 @@ export default function PostRunScreen({ record, ghost, alreadySavedRunId, onDone
         )
       }
 
-      {/* Challenge friends — only shown after saving a free run (not a ghost challenge) */}
-      {saved && !ghost && friends.length > 0 && (
-        <View style={s.challengeSection}>
-          <Text style={s.challengeSectionTitle}>CHALLENGE FRIENDS</Text>
-          <Text style={s.challengeSectionSub}>Dare someone to beat this run</Text>
-          {friends.map(f => (
-            <View key={f.profile.id} style={s.friendRow}>
-              <Avatar username={f.profile.username} size={40} />
-              <View style={s.friendInfo}>
-                <Text style={s.friendName}>{f.profile.username}</Text>
-                <Text style={s.friendRating}>Ghost {f.profile.ghost_rating}</Text>
-              </View>
-              {challenged.has(f.profile.id) ? (
-                <View style={[s.challengeBtn, s.challengedBtn]}>
-                  <Text style={[s.challengeBtnText, { color: C.green }]}>Sent ✓</Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={s.challengeBtn}
-                  onPress={() => challengeFriend(f.profile)}
-                  disabled={challenging === f.profile.id}
-                >
-                  {challenging === f.profile.id
-                    ? <ActivityIndicator color={C.text} size="small" />
-                    : <Text style={s.challengeBtnText}>Challenge</Text>
-                  }
-                </TouchableOpacity>
-              )}
+      {/* Post as Bounty — shown after saving any Ghost/free run (not a bounty-accept run) */}
+      {saved && !bountyId && savedRunId && (
+        <View style={s.bountySection}>
+          {bountyPosted ? (
+            <View style={[s.saveBtn, s.savedBtn]}>
+              <Text style={[s.saveBtnText, { color: C.green }]}>Posted to Bounty Board ✓</Text>
             </View>
-          ))}
-        </View>
-      )}
-
-      {saved && !ghost && friends.length === 0 && (
-        <View style={s.noFriendsHint}>
-          <Text style={s.noFriendsText}>Add friends from the Profile tab to challenge them with this run.</Text>
+          ) : (
+            <>
+              {bountyPostError ? <Text style={s.error}>{bountyPostError}</Text> : null}
+              <TouchableOpacity style={s.bountyBtn} onPress={postAsBounty} disabled={bountyPosting}>
+                {bountyPosting
+                  ? <ActivityIndicator color={C.text} />
+                  : (
+                    <>
+                      <Text style={s.bountyBtnText}>Post as Bounty</Text>
+                      <Text style={s.bountyBtnSub}>Let anyone try to beat this run</Text>
+                    </>
+                  )
+                }
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
 
@@ -295,8 +243,8 @@ const s = StyleSheet.create({
   statsInner:   { paddingHorizontal: S.lg },
   miniBadge:    { alignSelf: 'flex-start', borderRadius: R.full, paddingHorizontal: S.md, paddingVertical: 6, marginBottom: S.md },
   miniBadgeText:{ color: C.text, fontWeight: '700', fontSize: 14, fontFamily: F.bodyBold },
-  heading:      { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.lg, fontFamily: F.bodyBold },
-  statsCard:    { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, marginBottom: S.lg },
+  heading:      { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.lg, fontFamily: F.display },
+  statsCard:    { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, marginBottom: S.lg, borderWidth: 1, borderColor: C.border },
   divider:      { height: 1, backgroundColor: C.border, marginVertical: S.sm },
   error:        { color: C.red, textAlign: 'center', marginBottom: S.md },
 
@@ -304,19 +252,11 @@ const s = StyleSheet.create({
   savedBtn:     { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: C.green },
   saveBtnText:  { color: C.text, fontSize: 16, fontWeight: '700', fontFamily: F.bodyBold },
 
-  // Post-save challenge section
-  challengeSection:      { marginTop: S.lg, marginBottom: S.sm },
-  challengeSectionTitle: { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
-  challengeSectionSub:   { color: C.textMuted, fontSize: 13, marginBottom: S.md },
-  friendRow:             { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: S.sm },
-  friendInfo:            { flex: 1 },
-  friendName:            { color: C.text, fontSize: 15, fontWeight: '600' },
-  friendRating:          { color: C.textSub, fontSize: 12, marginTop: 2 },
-  challengeBtn:          { backgroundColor: C.primary, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 11 },
-  challengedBtn:         { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: C.green },
-  challengeBtnText:      { color: C.text, fontWeight: '700', fontSize: 13 },
-  noFriendsHint:         { marginTop: S.lg, padding: S.lg, backgroundColor: C.card, borderRadius: R.lg },
-  noFriendsText:         { color: C.textSub, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  // Post as Bounty section
+  bountySection:  { marginTop: S.sm, marginBottom: S.sm },
+  bountyBtn:      { backgroundColor: C.card, borderRadius: R.full, paddingVertical: 16, alignItems: 'center', borderWidth: 1.5, borderColor: C.primary },
+  bountyBtnText:  { color: C.text, fontSize: 16, fontWeight: '700', fontFamily: F.bodyBold },
+  bountyBtnSub:   { color: C.textSub, fontSize: 12, marginTop: 2 },
 
   doneBtn:      { paddingVertical: 16, alignItems: 'center' },
   doneBtnText:  { color: C.textSub, fontSize: 16 },

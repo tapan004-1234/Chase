@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'
@@ -10,6 +10,7 @@ import Avatar from '../components/Avatar'
 import { C, F, R, S } from '../theme'
 import type { TagParameters } from '../types'
 import { useRunRecorder } from '../lib/RunRecorder'
+import { DARK_MAP_STYLE } from '../lib/mapStyle'
 
 interface TagRunState {
   opponentDistanceKm: number
@@ -82,8 +83,19 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
     return () => { void stopRun() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Timer
+  // Android camera follow — followsUserLocation is iOS-only; animateCamera works on both
   useEffect(() => {
+    if (userCoord && mapRef.current) {
+      mapRef.current.animateCamera(
+        { center: { latitude: userCoord.latitude, longitude: userCoord.longitude }, zoom: 17 },
+        { duration: 800 },
+      )
+    }
+  }, [userCoord])
+
+  // Timer — when gameOver fires, clean up the old interval and don't start a new one
+  useEffect(() => {
+    if (gameOver) return
     const limitSecs = durationMinutes * 60
     const t = setInterval(() => {
       setElapsed(s => {
@@ -174,15 +186,15 @@ export default function TagActiveRunScreen({ params, onEnd, onCancel }: Props) {
 
   return (
     <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       {/* Full-screen map */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_DEFAULT}
         showsUserLocation
-        followsUserLocation
         mapType="standard"
-        userInterfaceStyle="dark"
+        customMapStyle={DARK_MAP_STYLE}
         initialRegion={{
           latitude:        userCoord?.latitude ?? 37.78825,
           longitude:       userCoord?.longitude ?? -122.4324,
@@ -366,8 +378,8 @@ const s = StyleSheet.create({
   outcomeEmoji:     { fontSize: 72, marginBottom: S.md },
   outcomeTitle:     { fontSize: 36, fontFamily: F.display, color: C.text, marginBottom: S.sm },
   outcomeSub:       { fontSize: 15, color: C.textSub, textAlign: 'center', marginBottom: S.lg },
-  outcomeStats:     { backgroundColor: C.card, borderRadius: R.lg, padding: S.md, width: '100%', marginBottom: S.xl, gap: S.xs },
+  outcomeStats:     { backgroundColor: C.card, borderRadius: R.lg, padding: S.md, width: '100%', marginBottom: S.xl, gap: S.xs, borderWidth: 1, borderColor: C.border },
   outcomeStatLine:  { color: C.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   outcomeDoneBtn:   { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 16, paddingHorizontal: 48, alignItems: 'center' },
-  outcomeDoneBtnText:{ color: C.bg, fontSize: 18, fontWeight: '700', fontFamily: F.display },
+  outcomeDoneBtnText:{ color: C.text, fontSize: 18, fontWeight: '700', fontFamily: F.display },
 })
