@@ -101,23 +101,25 @@ const drum = StyleSheet.create({
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen({
-  profile, ghostScore, onStartFreeRun, onStartBountyRun, onStartTag, onViewPastRun,
+  profile, onStartFreeRun, onStartBountyRun, onStartTag, onViewPastRun,
 }: Props) {
   const insets = useSafeAreaInsets()
-  const [mode,          setMode]          = useState<Mode>('Tag')
-  const [lobby,         setLobby]         = useState(false)
-  const [lobbyCode,     setLobbyCode]     = useState<string | null>(null)
-  const [lobbyCreating, setLobbyCreating] = useState(false)
-  const [lobbyGuest,    setLobbyGuest]    = useState<Profile | null>(null)
-  const [showQrModal,   setShowQrModal]   = useState(false)
-  const [timeMinutes,   setTimeMinutes]   = useState(10)
-  const [players,       setPlayers]       = useState<KnownPlayer[]>([])
-  const [tagWL,         setTagWL]         = useState<WLMap>({})
-  const [pastRuns,      setPastRuns]      = useState<GhostRun[]>([])
-  const [bountyFeed,    setBountyFeed]    = useState<BountyChallenge[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [refreshing,    setRefreshing]    = useState(false)
-  const [runsExpanded,  setRunsExpanded]  = useState(false)
+  const [mode,             setMode]             = useState<Mode>('Tag')
+  const [lobby,            setLobby]            = useState(false)
+  const [lobbyCode,        setLobbyCode]        = useState<string | null>(null)
+  const [lobbyCreating,    setLobbyCreating]    = useState(false)
+  const [lobbyGuest,       setLobbyGuest]       = useState<Profile | null>(null)
+  const [showQrModal,      setShowQrModal]      = useState(false)
+  const [timeMinutes,      setTimeMinutes]      = useState(10)
+  const [players,          setPlayers]          = useState<KnownPlayer[]>([])
+  const [tagWL,            setTagWL]            = useState<WLMap>({})
+  const [pastRuns,         setPastRuns]         = useState<GhostRun[]>([])
+  const [bountyFeed,       setBountyFeed]       = useState<BountyChallenge[]>([])
+  const [loading,          setLoading]          = useState(true)
+  const [refreshing,       setRefreshing]       = useState(false)
+  const [runsExpanded,     setRunsExpanded]     = useState(false)
+  const [pendingChallenge, setPendingChallenge] = useState<{ lobbyCode: string; toProfile: Profile } | null>(null)
+  const [incomingInvite,   setIncomingInvite]   = useState<{ id: string; fromProfile: Profile; lobbyCode: string } | null>(null)
 
   const load = useCallback(async () => {
     const uid = profile.id
@@ -128,6 +130,7 @@ export default function HomeScreen({
       { data: friendReqs },
       { data: myRuns },
       { data: bountyData },
+      { data: inviteData },
     ] = await Promise.all([
       supabase.from('tag_challenges')
         .select('police_id, thief_id, winner_id')
@@ -146,6 +149,13 @@ export default function HomeScreen({
         .neq('challenger_id', uid)
         .order('created_at', { ascending: false })
         .limit(50),
+      supabase.from('tag_invites')
+        .select('*, from_profile:profiles!from_id(*)')
+        .eq('to_id', uid)
+        .eq('status', 'pending')
+        .gt('expires_at', now)
+        .order('created_at', { ascending: false })
+        .limit(1),
     ])
 
     // Build tag W/L map
@@ -158,7 +168,7 @@ export default function HomeScreen({
     }
     setTagWL(wlMap)
 
-    // Build friends list from accepted friend requests (Tag opponents who aren't friends are excluded for v1)
+    // Build friends list from accepted friend requests
     const playerMap = new Map<string, KnownPlayer>()
     for (const req of (friendReqs as any[]) ?? []) {
       const other: Profile = req.from_id === uid ? req.to_profile : req.from_profile
@@ -170,13 +180,24 @@ export default function HomeScreen({
 
     setPastRuns((myRuns as GhostRun[]) ?? [])
     setBountyFeed((bountyData as BountyChallenge[]) ?? [])
+
+    // Surface any pending invite received while offline
+    const firstInvite = (inviteData as any[] | null)?.[0]
+    if (firstInvite) {
+      setIncomingInvite({
+        id:          firstInvite.id,
+        fromProfile: firstInvite.from_profile as Profile,
+        lobbyCode:   firstInvite.lobby_code,
+      })
+    }
+
     setLoading(false)
     setRefreshing(false)
   }, [profile.id])
 
   useEffect(() => { load() }, [load])
 
-  // Watch for a guest joining the lobby so the thief slot updates in real-time
+  // Watch lobby for guest joining (shared by both direct challenge and group lobby)
   useEffect(() => {
     if (!lobbyCode) { setLobbyGuest(null); return }
 
@@ -200,6 +221,30 @@ export default function HomeScreen({
 
     return () => { supabase.removeChannel(channel) }
   }, [lobbyCode])
+
+  // Listen for incoming direct challenges in real-time
+  useEffect(() => {
+    const channel = supabase
+      .channel(`invites-${profile.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'tag_invites',
+        filter: `to_id=eq.${profile.id}`,
+      }, async (payload) => {
+        const invite = payload.new as any
+        if (invite.status !== 'pending') return
+        const { data } = await supabase.from('profiles').select('*').eq('id', invite.from_id).single()
+        if (data) {
+          setIncomingInvite({ id: invite.id, fromProfile: data as Profile, lobbyCode: invite.lobby_code })
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [profile.id])
+
+  // ── Group lobby ──────────────────────────────────────────────────────────
 
   async function handleLobbyToggle(on: boolean) {
     if (!on) {
@@ -225,22 +270,85 @@ export default function HomeScreen({
     setLobbyCreating(false)
   }
 
-  function handlePlayTag() {
-    if (!lobby) {
-      Alert.alert('Enable Lobby', 'Turn on "Create Lobby" above to invite a friend and start a Tag game.')
+  // ── Direct 1v1 challenge ─────────────────────────────────────────────────
+
+  async function handleChallengePlayer(opponent: Profile) {
+    if (pendingChallenge) {
+      Alert.alert('Challenge active', 'Cancel your current challenge before sending a new one.')
       return
     }
-    if (!lobbyCode) return
-    if (!lobbyGuest) {
-      Alert.alert('No opponent yet', 'Share your lobby QR so a friend can join, then start the chase.')
+    const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString()
+    let code: string | null = null
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const c = Math.random().toString(36).slice(2, 8).toUpperCase()
+      const { error } = await supabase.from('lobbies').insert({
+        host_id: profile.id, code: c,
+        duration_minutes: timeMinutes, expires_at: expiresAt,
+      })
+      if (!error) { code = c; break }
+      if (error?.code !== '23505') break
+    }
+
+    if (!code) { Alert.alert('Error', 'Could not create challenge. Try again.'); return }
+
+    const { error: inviteErr } = await supabase.from('tag_invites').insert({
+      from_id: profile.id, to_id: opponent.id,
+      lobby_code: code, expires_at: expiresAt,
+    })
+
+    if (inviteErr) {
+      await supabase.from('lobbies').delete().eq('code', code)
+      Alert.alert('Error', 'Could not send challenge. Try again.')
       return
     }
-    const headStart = Math.min(500, Math.max(0, (profile.tag_rating - lobbyGuest.tag_rating) * 0.5))
+
+    setLobbyCode(code)
+    setPendingChallenge({ lobbyCode: code, toProfile: opponent })
+  }
+
+  async function handleCancelChallenge() {
+    if (!pendingChallenge) return
+    await supabase.from('lobbies').delete().eq('code', pendingChallenge.lobbyCode).eq('host_id', profile.id)
+    await supabase.from('tag_invites').update({ status: 'declined' }).eq('lobby_code', pendingChallenge.lobbyCode)
+    setPendingChallenge(null)
+    setLobbyCode(null)
+    setLobbyGuest(null)
+  }
+
+  async function handleAcceptInvite() {
+    if (!incomingInvite) return
+    await supabase.from('tag_invites').update({ status: 'accepted' }).eq('id', incomingInvite.id)
+    await supabase.from('lobbies').update({ guest_id: profile.id })
+      .eq('code', incomingInvite.lobbyCode).is('guest_id', null)
     onStartTag({
-      lobbyCode, myRole: 'police', opponentProfile: lobbyGuest,
+      lobbyCode:        incomingInvite.lobbyCode,
+      myRole:           'thief',
+      opponentProfile:  incomingInvite.fromProfile,
+      durationMinutes:  timeMinutes,
+      headStartMetres:  0,
+    })
+    setIncomingInvite(null)
+  }
+
+  async function handleDeclineInvite() {
+    if (!incomingInvite) return
+    await supabase.from('tag_invites').update({ status: 'declined' }).eq('id', incomingInvite.id)
+    setIncomingInvite(null)
+  }
+
+  function handleStartChase() {
+    const guest = lobbyGuest
+    const code  = pendingChallenge?.lobbyCode ?? lobbyCode
+    if (!guest || !code) return
+    const headStart = Math.min(500, Math.max(0, (profile.tag_rating - guest.tag_rating) * 0.5))
+    onStartTag({
+      lobbyCode: code, myRole: 'police', opponentProfile: guest,
       durationMinutes: timeMinutes, headStartMetres: headStart,
     })
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   function wlLabel(w: number, l: number) {
     return (
@@ -256,9 +364,8 @@ export default function HomeScreen({
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  const visibleRuns = runsExpanded ? pastRuns : pastRuns.slice(0, 3)
-
-  // Footer height varies by mode: Tag needs drum picker, Ghost needs just a button
+  const visibleRuns   = runsExpanded ? pastRuns : pastRuns.slice(0, 3)
+  const canStartChase = !!lobbyGuest && !!(pendingChallenge?.lobbyCode ?? (lobby && lobbyCode))
   const FOOTER_HEIGHT = mode === 'Tag' ? 172 : mode === 'Ghost' ? 90 : 0
 
   return (
@@ -268,22 +375,6 @@ export default function HomeScreen({
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load() }} tintColor={C.text} />}
       >
-        {/* ── Rating cards ──────────────────────────────────────────────── */}
-        <View style={s.ratingRow}>
-          <View style={[s.ratingCard, { borderColor: C.red }]}>
-            <Text style={s.ratingLabel}>TAG</Text>
-            <Text style={[s.ratingValue, { color: C.red }]}>{profile.tag_rating}</Text>
-          </View>
-          <View style={[s.ratingCard, { borderColor: C.primary }]}>
-            <Text style={s.ratingLabel}>BOUNTY</Text>
-            <Text style={[s.ratingValue, { color: C.primary }]}>{profile.bounty_rating}</Text>
-          </View>
-          <View style={[s.ratingCard, { borderColor: C.you }]}>
-            <Text style={s.ratingLabel}>GHOST</Text>
-            <Text style={[s.ratingValue, { color: C.you }]}>{ghostScore}</Text>
-          </View>
-        </View>
-
         {/* ── Mode toggle ───────────────────────────────────────────────── */}
         <View style={s.modeToggleWrap}>
           <View style={s.modeToggle}>
@@ -299,51 +390,45 @@ export default function HomeScreen({
         {/* ── TAG TAB ───────────────────────────────────────────────────── */}
         {mode === 'Tag' && (
           <>
-            <View style={s.lobbyRow}>
-              <View>
-                <Text style={s.lobbyLabel}>Create Lobby</Text>
-                <Text style={s.lobbySub}>Invite friends with a QR code</Text>
-              </View>
-              {lobbyCreating
-                ? <ActivityIndicator color={C.primary} />
-                : <Switch value={lobby} onValueChange={handleLobbyToggle}
-                    trackColor={{ false: C.border, true: C.primary }}
-                    thumbColor={C.text} />
-              }
-            </View>
-
-            {lobby && lobbyCode && (
-              <>
-                <View style={s.lobbyCard}>
-                  <View style={[s.lobbyHalf, s.lobbyHalfPolice]}>
-                    <Text style={[s.lobbyRoleLabel, { color: C.red }]}>POLICE</Text>
-                    <Avatar username={profile.username} size={44} />
-                    <Text style={s.lobbyPlayerName} numberOfLines={1}>{profile.username}</Text>
-                    <Text style={s.lobbyRatingText}>({profile.tag_rating})</Text>
-                  </View>
-                  <View style={s.lobbyDivider} />
-                  <View style={[s.lobbyHalf, s.lobbyHalfThief]}>
-                    <Text style={[s.lobbyRoleLabel, { color: C.primary }]}>THIEF</Text>
-                    {lobbyGuest ? (
-                      <>
-                        <Avatar username={lobbyGuest.username} size={44} />
-                        <Text style={s.lobbyPlayerName} numberOfLines={1}>{lobbyGuest.username}</Text>
-                        <Text style={s.lobbyRatingText}>({lobbyGuest.tag_rating})</Text>
-                      </>
-                    ) : (
-                      <View style={s.lobbyWaiting}>
-                        <ActivityIndicator color={C.textMuted} size="small" />
-                        <Text style={s.lobbyWaitingText}>Waiting...</Text>
-                      </View>
-                    )}
-                  </View>
+            {/* Incoming challenge banner */}
+            {incomingInvite && (
+              <View style={s.inviteBanner}>
+                <Avatar username={incomingInvite.fromProfile.username} size={40} />
+                <View style={s.inviteInfo}>
+                  <Text style={s.inviteTitle}>{incomingInvite.fromProfile.username} challenged you</Text>
+                  <Text style={s.inviteSub}>Tag · {incomingInvite.fromProfile.tag_rating} rating</Text>
                 </View>
-                <TouchableOpacity style={s.shareQrBtn} onPress={() => setShowQrModal(true)} activeOpacity={0.8}>
-                  <Text style={s.shareQrText}>Share QR</Text>
+                <TouchableOpacity style={s.acceptInviteBtn} onPress={handleAcceptInvite} activeOpacity={0.85}>
+                  <Text style={s.acceptInviteText}>Accept</Text>
                 </TouchableOpacity>
-              </>
+                <TouchableOpacity style={s.declineBtn} onPress={handleDeclineInvite}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={20} color={C.textMuted} />
+                </TouchableOpacity>
+              </View>
             )}
 
+            {/* Pending outgoing challenge */}
+            {pendingChallenge && (
+              <View style={s.pendingCard}>
+                <View style={s.pendingRow}>
+                  <Avatar username={pendingChallenge.toProfile.username} size={40} />
+                  <View style={s.pendingInfo}>
+                    <Text style={s.pendingTitle}>Challenged {pendingChallenge.toProfile.username}</Text>
+                    {lobbyGuest
+                      ? <Text style={s.pendingReady}>Accepted — tap Start Chase below</Text>
+                      : <Text style={s.pendingSub}>Waiting for them to accept…</Text>
+                    }
+                  </View>
+                  <TouchableOpacity onPress={handleCancelChallenge}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close-circle-outline" size={24} color={C.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Friends list */}
             <View style={s.section}>
               <View style={s.sectionHeader}>
                 <View style={s.sectionTitleRow}>
@@ -366,9 +451,70 @@ export default function HomeScreen({
                           </Text>
                           {wlLabel(tagWL[p.profile.id]?.wins ?? 0, tagWL[p.profile.id]?.losses ?? 0)}
                         </View>
+                        <TouchableOpacity
+                          style={[s.challengeBtn, !!pendingChallenge && s.challengeBtnDim]}
+                          onPress={() => handleChallengePlayer(p.profile)}
+                          disabled={!!pendingChallenge}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={s.challengeBtnText}>Challenge</Text>
+                        </TouchableOpacity>
                       </View>
                     ))
               }
+            </View>
+
+            {/* Group lobby (secondary / optional) */}
+            <View style={s.groupLobbySection}>
+              <View style={s.sectionDivider} />
+              <View style={s.lobbyRow}>
+                <View>
+                  <Text style={s.lobbyLabel}>Group Lobby</Text>
+                  <Text style={s.lobbySub}>Run club or 3+ players — share a QR code</Text>
+                </View>
+                {lobbyCreating
+                  ? <ActivityIndicator color={C.primary} />
+                  : <Switch
+                      value={lobby}
+                      onValueChange={handleLobbyToggle}
+                      disabled={!!pendingChallenge}
+                      trackColor={{ false: C.border, true: C.primary }}
+                      thumbColor={C.text}
+                    />
+                }
+              </View>
+
+              {lobby && lobbyCode && (
+                <>
+                  <View style={s.lobbyCard}>
+                    <View style={[s.lobbyHalf, s.lobbyHalfPolice]}>
+                      <Text style={[s.lobbyRoleLabel, { color: C.red }]}>POLICE</Text>
+                      <Avatar username={profile.username} size={44} />
+                      <Text style={s.lobbyPlayerName} numberOfLines={1}>{profile.username}</Text>
+                      <Text style={s.lobbyRatingText}>({profile.tag_rating})</Text>
+                    </View>
+                    <View style={s.lobbyDivider} />
+                    <View style={[s.lobbyHalf, s.lobbyHalfThief]}>
+                      <Text style={[s.lobbyRoleLabel, { color: C.primary }]}>THIEF</Text>
+                      {lobbyGuest ? (
+                        <>
+                          <Avatar username={lobbyGuest.username} size={44} />
+                          <Text style={s.lobbyPlayerName} numberOfLines={1}>{lobbyGuest.username}</Text>
+                          <Text style={s.lobbyRatingText}>({lobbyGuest.tag_rating})</Text>
+                        </>
+                      ) : (
+                        <View style={s.lobbyWaiting}>
+                          <ActivityIndicator color={C.textMuted} size="small" />
+                          <Text style={s.lobbyWaitingText}>Waiting...</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <TouchableOpacity style={s.shareQrBtn} onPress={() => setShowQrModal(true)} activeOpacity={0.8}>
+                    <Text style={s.shareQrText}>Share QR</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </>
         )}
@@ -478,23 +624,30 @@ export default function HomeScreen({
         <View style={{ height: FOOTER_HEIGHT + insets.bottom }} />
       </ScrollView>
 
-      {/* Fixed footer — Tag: drum picker + play; Ghost: free run; Bounty: hidden */}
+      {/* Fixed footer */}
       {mode !== 'Bounty' && (
         <View style={[s.footer, { paddingBottom: insets.bottom + S.sm }]}>
           {mode === 'Tag' && (
             <>
               <Text style={s.footerTimerLabel}>DURATION</Text>
               <TimeDrumPicker value={timeMinutes} onChange={setTimeMinutes} />
-              <TouchableOpacity
-                style={[s.playBtn, { backgroundColor: C.red }]}
-                onPress={handlePlayTag}
-                activeOpacity={0.85}
-                disabled={lobby && !lobbyCode}
-              >
-                <Text style={s.playBtnText}>
-                  {lobby ? (lobbyCode ? 'Start Chase' : 'Creating…') : 'Play Tag'}
-                </Text>
-              </TouchableOpacity>
+              {canStartChase
+                ? (
+                  <TouchableOpacity style={[s.playBtn, { backgroundColor: C.red }]}
+                    onPress={handleStartChase} activeOpacity={0.85}>
+                    <Text style={s.playBtnText}>Start Chase</Text>
+                  </TouchableOpacity>
+                )
+                : (
+                  <View style={[s.playBtn, s.playBtnInactive]}>
+                    <Text style={s.playBtnInactiveText}>
+                      {pendingChallenge
+                        ? `Waiting for ${pendingChallenge.toProfile.username}…`
+                        : 'Challenge a friend above'}
+                    </Text>
+                  </View>
+                )
+              }
             </>
           )}
           {mode === 'Ghost' && (
@@ -553,12 +706,6 @@ export default function HomeScreen({
 const s = StyleSheet.create({
   root:              { flex: 1, backgroundColor: C.bg },
 
-  // Rating cards
-  ratingRow:         { flexDirection: 'row', paddingHorizontal: S.md, paddingTop: S.md, gap: S.sm },
-  ratingCard:        { flex: 1, backgroundColor: C.card, borderRadius: R.md, padding: S.sm, alignItems: 'center', borderWidth: 1 },
-  ratingLabel:       { color: C.textSub, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
-  ratingValue:       { fontSize: 22, fontFamily: F.display },
-
   // W/L labels
   wlText:            { fontSize: 12 },
   wlNum:             { color: C.textMuted, fontFamily: F.displayBold, fontSize: 14 },
@@ -567,35 +714,35 @@ const s = StyleSheet.create({
   wlSep:             { color: C.textMuted },
 
   // Mode toggle
-  modeToggleWrap:    { paddingHorizontal: S.lg, marginTop: S.sm },
+  modeToggleWrap:    { paddingHorizontal: S.lg, marginTop: S.md },
   modeToggle:        { flexDirection: 'row', backgroundColor: C.card, borderRadius: R.full, padding: 4 },
   modeTab:           { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: R.full },
   modeTabActive:     { backgroundColor: C.cardDeep },
   modeTabText:       { color: C.textSub, fontSize: 14, fontWeight: '600' },
   modeTabTextActive: { color: C.text },
 
-  // Lobby toggle row
-  lobbyRow:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.md },
-  lobbyLabel:        { color: C.text, fontSize: 16, fontWeight: '600' },
-  lobbySub:          { color: C.textSub, fontSize: 12, marginTop: 2 },
+  // Incoming challenge banner
+  inviteBanner:      { flexDirection: 'row', alignItems: 'center', marginHorizontal: S.lg, marginTop: S.md,
+                       backgroundColor: 'rgba(255,59,59,0.12)', borderRadius: R.lg, padding: S.md,
+                       borderWidth: 1, borderColor: 'rgba(255,59,59,0.35)', gap: S.sm },
+  inviteInfo:        { flex: 1 },
+  inviteTitle:       { color: C.text, fontSize: 14, fontWeight: '700' },
+  inviteSub:         { color: C.textSub, fontSize: 12, marginTop: 2 },
+  acceptInviteBtn:   { backgroundColor: C.red, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 10 },
+  acceptInviteText:  { color: C.text, fontWeight: '700', fontSize: 13 },
+  declineBtn:        { padding: 4 },
 
-  // Lobby card
-  lobbyCard:         { flexDirection: 'row', marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.lg, overflow: 'hidden', height: 140, marginBottom: S.sm, borderWidth: 1, borderColor: C.border },
-  lobbyHalf:         { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: S.md },
-  lobbyHalfPolice:   { backgroundColor: 'rgba(255,59,59,0.08)' },
-  lobbyHalfThief:    { backgroundColor: 'rgba(61,123,255,0.08)' },
-  lobbyDivider:      { width: 1, backgroundColor: C.border },
-  lobbyRoleLabel:    { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: F.bodyBold },
-  lobbyPlayerName:   { color: C.text, fontSize: 13, fontWeight: '600', maxWidth: 100, textAlign: 'center' },
-  lobbyRatingText:   { color: C.textSub, fontSize: 11 },
-  lobbyWaiting:      { alignItems: 'center', gap: S.xs },
-  lobbyWaitingText:  { color: C.textMuted, fontSize: 12 },
-
-  shareQrBtn:        { marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.md, paddingVertical: 14, alignItems: 'center', marginBottom: S.md },
-  shareQrText:       { color: C.text, fontWeight: '600', fontSize: 15 },
+  // Pending outgoing challenge card
+  pendingCard:       { marginHorizontal: S.lg, marginTop: S.md, backgroundColor: C.card, borderRadius: R.lg,
+                       padding: S.md, borderWidth: 1, borderColor: C.border },
+  pendingRow:        { flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  pendingInfo:       { flex: 1 },
+  pendingTitle:      { color: C.text, fontSize: 14, fontWeight: '700' },
+  pendingReady:      { color: C.green, fontSize: 12, marginTop: 2 },
+  pendingSub:        { color: C.textMuted, fontSize: 12, marginTop: 2 },
 
   // Section
-  section:           { paddingHorizontal: S.lg, marginTop: S.sm },
+  section:           { paddingHorizontal: S.lg, marginTop: S.md },
   sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.sm },
   sectionTitleRow:   { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   sectionTitle:      { color: C.textSub, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
@@ -608,6 +755,30 @@ const s = StyleSheet.create({
   friendInfo:        { flex: 1 },
   friendName:        { color: C.text, fontSize: 15, fontWeight: '600' },
   friendRating:      { color: C.textSub, fontWeight: '400' },
+
+  // Challenge button on friend row
+  challengeBtn:      { backgroundColor: C.red, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 10 },
+  challengeBtnDim:   { opacity: 0.35 },
+  challengeBtnText:  { color: C.text, fontWeight: '700', fontSize: 13 },
+
+  // Group lobby section
+  groupLobbySection: { marginTop: S.sm },
+  sectionDivider:    { height: 1, backgroundColor: C.border, marginHorizontal: S.lg, marginBottom: S.sm },
+  lobbyRow:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.sm },
+  lobbyLabel:        { color: C.textSub, fontSize: 14, fontWeight: '600' },
+  lobbySub:          { color: C.textMuted, fontSize: 11, marginTop: 2 },
+  lobbyCard:         { flexDirection: 'row', marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.lg, overflow: 'hidden', height: 140, marginBottom: S.sm, borderWidth: 1, borderColor: C.border },
+  lobbyHalf:         { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: S.md },
+  lobbyHalfPolice:   { backgroundColor: 'rgba(255,59,59,0.08)' },
+  lobbyHalfThief:    { backgroundColor: 'rgba(61,123,255,0.08)' },
+  lobbyDivider:      { width: 1, backgroundColor: C.border },
+  lobbyRoleLabel:    { fontSize: 10, fontWeight: '700', letterSpacing: 1, fontFamily: F.bodyBold },
+  lobbyPlayerName:   { color: C.text, fontSize: 13, fontWeight: '600', maxWidth: 100, textAlign: 'center' },
+  lobbyRatingText:   { color: C.textSub, fontSize: 11 },
+  lobbyWaiting:      { alignItems: 'center', gap: S.xs },
+  lobbyWaitingText:  { color: C.textMuted, fontSize: 12 },
+  shareQrBtn:        { marginHorizontal: S.lg, backgroundColor: C.card, borderRadius: R.md, paddingVertical: 14, alignItems: 'center', marginBottom: S.md },
+  shareQrText:       { color: C.text, fontWeight: '600', fontSize: 15 },
 
   // Bounty feed
   bountyCard:        { backgroundColor: C.card, borderRadius: R.md, padding: S.md, marginBottom: S.sm, borderWidth: 1, borderColor: C.border },
@@ -638,6 +809,8 @@ const s = StyleSheet.create({
   footerTimerLabel:  { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginBottom: 0 },
   playBtn:           { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 18, alignItems: 'center', marginTop: S.xs },
   playBtnText:       { color: C.text, fontSize: 20, fontWeight: '700', fontFamily: F.display },
+  playBtnInactive:   { backgroundColor: C.cardDeep },
+  playBtnInactiveText: { color: C.textMuted, fontSize: 15, fontWeight: '600' },
 
   // QR Modal
   modalBackdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
