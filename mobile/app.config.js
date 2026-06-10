@@ -18,12 +18,6 @@ module.exports = {
     },
     plugins: [
       ...base.expo.plugins,
-      [
-        'react-native-maps',
-        {
-          androidApiKey: googleMapsApiKey,
-        },
-      ],
     ],
   },
 }
