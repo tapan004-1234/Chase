@@ -327,7 +327,7 @@ function PBRow({ icon, label, value, color }: { icon: string; label: string; val
   )
 }
 const pb = StyleSheet.create({
-  row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: S.sm },
+  row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: S.rowVert, gap: S.sm },
   label: { flex: 1, color: C.textSub, fontSize: 14 },
   value: { fontSize: 16, fontFamily: F.bodyBold },
 })

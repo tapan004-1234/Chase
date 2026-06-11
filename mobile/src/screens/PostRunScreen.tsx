@@ -226,7 +226,7 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 const r = StyleSheet.create({
-  row:   { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
+  row:   { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: S.rowVert },
   label: { color: C.textSub, fontSize: 15 },
   value: { color: C.text, fontSize: 15, fontWeight: '600' },
 })
@@ -241,7 +241,7 @@ const s = StyleSheet.create({
 
   statsRoot:    { flex: 1, backgroundColor: C.bg },
   statsInner:   { paddingHorizontal: S.lg },
-  miniBadge:    { alignSelf: 'flex-start', borderRadius: R.full, paddingHorizontal: S.md, paddingVertical: 6, marginBottom: S.md },
+  miniBadge:    { alignSelf: 'flex-start', borderRadius: R.full, paddingHorizontal: S.md, paddingVertical: S.sm, marginBottom: S.md },
   miniBadgeText:{ color: C.text, fontWeight: '700', fontSize: 14, fontFamily: F.bodyBold },
   heading:      { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.lg, fontFamily: F.display },
   statsCard:    { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, marginBottom: S.lg, borderWidth: 1, borderColor: C.border },

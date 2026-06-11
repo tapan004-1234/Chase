@@ -260,13 +260,13 @@ const s = StyleSheet.create({
 
   statsRoot:       { flex: 1, backgroundColor: C.bg },
   statsInner:      { paddingHorizontal: S.lg },
-  miniBadge:       { alignSelf: 'flex-start', borderRadius: R.full, paddingHorizontal: S.md, paddingVertical: 6, marginBottom: S.md },
+  miniBadge:       { alignSelf: 'flex-start', borderRadius: R.full, paddingHorizontal: S.md, paddingVertical: S.sm, marginBottom: S.md },
   miniBadgeText:   { color: C.text, fontWeight: '700', fontSize: 14, fontFamily: F.bodyBold },
   heading:         { color: C.text, fontSize: 26, fontWeight: '700', marginBottom: S.lg, fontFamily: F.display },
   statsCard:       { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, marginBottom: S.lg, borderWidth: 1, borderColor: C.border },
   divider:         { height: 1, backgroundColor: C.border, marginVertical: S.sm },
   raceLostMsg:     { color: C.textSub, fontSize: 14, textAlign: 'center', marginBottom: S.lg, lineHeight: 22, paddingHorizontal: S.sm },
   errorMsg:        { color: C.red, fontSize: 14, textAlign: 'center', marginBottom: S.md },
-  doneBtn:         { paddingVertical: 16, alignItems: 'center' },
+  doneBtn:         { paddingVertical: S.md, alignItems: 'center' },
   doneBtnText:     { color: C.textSub, fontSize: 16 },
 })

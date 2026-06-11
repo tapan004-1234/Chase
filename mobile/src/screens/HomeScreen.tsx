@@ -751,7 +751,7 @@ const s = StyleSheet.create({
   viewAll:           { color: C.textSub, fontSize: 13 },
 
   // Friend row
-  friendRow:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: S.sm },
+  friendRow:         { flexDirection: 'row', alignItems: 'center', paddingVertical: S.rowVert, gap: S.sm },
   friendInfo:        { flex: 1 },
   friendName:        { color: C.text, fontSize: 15, fontWeight: '600' },
   friendRating:      { color: C.textSub, fontWeight: '400' },
@@ -796,7 +796,7 @@ const s = StyleSheet.create({
   emptySub:          { color: C.textMuted, fontSize: 12, textAlign: 'center', paddingHorizontal: S.xl },
 
   // Past runs
-  runRow:            { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: S.sm },
+  runRow:            { flexDirection: 'row', alignItems: 'center', paddingVertical: S.rowVert, gap: S.sm },
   runIconWrap:       { width: 40, height: 40, borderRadius: R.md, backgroundColor: C.card, justifyContent: 'center', alignItems: 'center' },
   runInfo:           { flex: 1 },
   runDist:           { color: C.text, fontSize: 15, fontWeight: '600', fontFamily: F.displayBold },
@@ -805,7 +805,7 @@ const s = StyleSheet.create({
   challengeRunText:  { color: C.textSub, fontSize: 12, fontWeight: '600' },
 
   // Footer
-  footer:            { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, paddingHorizontal: S.lg, paddingTop: S.xs, borderTopWidth: 0.5, borderTopColor: C.border },
+  footer:            { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, paddingHorizontal: S.lg, paddingTop: S.sm, borderTopWidth: 0.5, borderTopColor: C.border },
   footerTimerLabel:  { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginBottom: 0 },
   playBtn:           { backgroundColor: C.primary, borderRadius: R.full, paddingVertical: 18, alignItems: 'center', marginTop: S.xs },
   playBtnText:       { color: C.text, fontSize: 20, fontWeight: '700', fontFamily: F.display },

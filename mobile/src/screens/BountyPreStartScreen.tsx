@@ -110,7 +110,7 @@ const s = StyleSheet.create({
   back:         { paddingHorizontal: S.md, paddingVertical: S.sm },
 
   badgeRow:     { flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, marginBottom: S.sm },
-  badge:        { borderWidth: 1, borderColor: C.primary, borderRadius: R.full, paddingHorizontal: S.sm, paddingVertical: 3 },
+  badge:        { borderWidth: 1, borderColor: C.primary, borderRadius: R.full, paddingHorizontal: S.sm, paddingVertical: S.xs },
   badgeText:    { color: C.primary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, fontFamily: F.bodyBold },
 
   heading:      { color: C.text, fontSize: 22, fontWeight: '700', paddingHorizontal: S.lg, fontFamily: F.displayBold },

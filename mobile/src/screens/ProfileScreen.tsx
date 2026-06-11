@@ -372,7 +372,7 @@ const s = StyleSheet.create({
 
   requestsSection:  { paddingHorizontal: S.lg, marginBottom: S.md },
   sectionTitle:     { color: C.textSub, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: S.sm, fontFamily: F.bodyBold },
-  requestRow:       { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 8 },
+  requestRow:       { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: S.sm },
   requestName:      { color: C.text, fontSize: 15, fontWeight: '600' },
   reqBtn:           { borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 14 },
   reqBtnText:       { color: C.text, fontWeight: '700', fontSize: 14, fontFamily: F.bodyBold },
@@ -389,7 +389,7 @@ const s = StyleSheet.create({
   historyBadge:     { backgroundColor: C.border, borderRadius: R.full, paddingHorizontal: 6, paddingVertical: 1 },
   historyBadgeText: { color: C.textSub, fontSize: 10, fontWeight: '700', fontFamily: F.bodyBold },
 
-  rivalRow:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: 12 },
+  rivalRow:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.rowVert },
   rivalInfo:        { flex: 1, marginLeft: S.sm },
   rivalName:        { color: C.text, fontSize: 15, fontWeight: '600' },
   rivalRating:      { color: C.textSub, fontWeight: '400' },
