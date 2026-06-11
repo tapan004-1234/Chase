@@ -285,42 +285,29 @@ export default function ProfileScreen({ profile, ghostScore, onSignOut }: Props)
         </TouchableOpacity>
       </View>
 
-      {/* 3 Rating cards */}
-      <View style={s.ratingRow}>
-        <View style={s.ratingCard}>
-          <Text style={s.ratingMode}>Tag</Text>
-          <Ionicons name="body-outline" size={22} color={C.red} style={{ marginVertical: 4 }} />
-          <Text style={[s.ratingNum, { color: C.red }]}>{profile.tag_rating}</Text>
-        </View>
-        <View style={s.ratingCard}>
-          <Text style={s.ratingMode}>Bounty</Text>
-          <Ionicons name="trophy-outline" size={22} color={C.primary} style={{ marginVertical: 4 }} />
-          <Text style={[s.ratingNum, { color: C.primary }]}>{profile.bounty_rating}</Text>
-        </View>
-        <View style={s.ratingCard}>
-          <Text style={s.ratingMode}>Ghost</Text>
-          <Ionicons name="flash-outline" size={22} color={C.you} style={{ marginVertical: 4 }} />
-          <Text style={[s.ratingNum, { color: C.you }]}>{ghostScore}</Text>
-        </View>
-      </View>
-
-      {/* History tab toggle */}
+      {/* Combined rating + history toggle */}
       <View style={s.historyTabs}>
-        {(['Tag', 'Bounty', 'Ghost'] as HistoryTab[]).map(t => (
-          <TouchableOpacity key={t} style={[s.historyTab, tab === t && s.historyTabActive]}
-            onPress={() => setTab(t)}>
-            <Text style={[s.historyTabText, tab === t && { color: tabColor[t], fontFamily: F.bodyBold }]}>{t}</Text>
-            {t === 'Tag' && totalTagGames > 0 && (
-              <View style={s.historyBadge}><Text style={s.historyBadgeText}>{totalTagGames}</Text></View>
-            )}
-            {t === 'Bounty' && totalBounties > 0 && (
-              <View style={s.historyBadge}><Text style={s.historyBadgeText}>{totalBounties}</Text></View>
-            )}
-            {t === 'Ghost' && ghostRuns.length > 0 && (
-              <View style={s.historyBadge}><Text style={s.historyBadgeText}>{ghostRuns.length}</Text></View>
-            )}
-          </TouchableOpacity>
-        ))}
+        {(['Tag', 'Bounty', 'Ghost'] as HistoryTab[]).map(t => {
+          const active = tab === t
+          const color  = tabColor[t]
+          const ratingVal = t === 'Tag' ? profile.tag_rating
+                          : t === 'Bounty' ? profile.bounty_rating
+                          : ghostScore
+          const icon   = t === 'Tag' ? 'body-outline' : t === 'Bounty' ? 'trophy-outline' : 'flash-outline'
+          const count  = t === 'Tag' ? totalTagGames : t === 'Bounty' ? totalBounties : ghostRuns.length
+          return (
+            <TouchableOpacity key={t}
+              style={[s.historyTab, active && { borderColor: color, borderWidth: 1.5 }]}
+              onPress={() => setTab(t)}>
+              <Ionicons name={icon as any} size={18} color={active ? color : C.textMuted} />
+              <Text style={[s.historyTabText, active && { color, fontFamily: F.bodyBold }]}>{t}</Text>
+              <Text style={[s.historyTabRating, active && { color }]}>{ratingVal}</Text>
+              {count > 0 && (
+                <View style={s.historyBadge}><Text style={s.historyBadgeText}>{count}</Text></View>
+              )}
+            </TouchableOpacity>
+          )
+        })}
       </View>
 
       {/* Content */}
@@ -395,15 +382,10 @@ const s = StyleSheet.create({
   addFriendText:    { color: C.text, fontWeight: '600', fontSize: 14 },
   shareBtn:         { backgroundColor: C.card, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: 15, justifyContent: 'center', alignItems: 'center' },
 
-  ratingRow:        { flexDirection: 'row', paddingHorizontal: S.lg, gap: S.sm, marginBottom: S.lg },
-  ratingCard:       { flex: 1, backgroundColor: C.card, borderRadius: R.lg, padding: S.md, alignItems: 'center', borderWidth: 1, borderColor: C.border },
-  ratingMode:       { color: C.textSub, fontSize: 11 },
-  ratingNum:        { color: C.text, fontSize: 28, fontFamily: F.display },
-
   historyTabs:      { flexDirection: 'row', paddingHorizontal: S.lg, marginBottom: S.md, gap: S.xs },
-  historyTab:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: S.sm, borderRadius: R.md, gap: S.xs, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-  historyTabActive: { borderColor: 'transparent' },
-  historyTabText:   { color: C.textMuted, fontSize: 13, fontWeight: '600' },
+  historyTab:       { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: S.sm, borderRadius: R.md, gap: 3, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  historyTabText:   { color: C.textMuted, fontSize: 12, fontWeight: '600' },
+  historyTabRating: { color: C.textMuted, fontSize: 20, fontFamily: F.display },
   historyBadge:     { backgroundColor: C.border, borderRadius: R.full, paddingHorizontal: 6, paddingVertical: 1 },
   historyBadgeText: { color: C.textSub, fontSize: 10, fontWeight: '700', fontFamily: F.bodyBold },
 

@@ -256,51 +256,45 @@ export default function StatsScreen({ profile, ghostScore }: Props) {
             </View>
           </View>
 
-          {/* Mode tab toggle */}
+          {/* Mode tab toggle — each button shows mode name + current rating */}
           <View style={s.statTabs}>
-            {(['Tag', 'Bounty', 'Ghost'] as StatTab[]).map(t => (
-              <TouchableOpacity key={t} style={[s.statTab, statTab === t && s.statTabActive]}
-                onPress={() => setStatTab(t)}>
-                <Text style={[s.statTabText, statTab === t && { color: tabColor[t], fontFamily: F.bodyBold }]}>{t}</Text>
-              </TouchableOpacity>
-            ))}
+            {(['Tag', 'Bounty', 'Ghost'] as StatTab[]).map(t => {
+              const active = statTab === t
+              const ratingVal = t === 'Tag' ? profile.tag_rating
+                              : t === 'Bounty' ? profile.bounty_rating
+                              : ghostScore
+              return (
+                <TouchableOpacity key={t}
+                  style={[s.statTab, active && { ...s.statTabActive, borderColor: tabColor[t] }]}
+                  onPress={() => setStatTab(t)}>
+                  <Text style={[s.statTabText, active && { color: tabColor[t], fontFamily: F.bodyBold }]}>{t}</Text>
+                  <Text style={[s.statTabRating, active && { color: tabColor[t] }]}>{ratingVal}</Text>
+                </TouchableOpacity>
+              )
+            })}
           </View>
 
           {statTab === 'Ghost' ? (
             <>
-              {/* Ghost score chart */}
               <View style={s.chartCard}>
-                <View style={s.chartHeader}>
-                  <Text style={s.chartLabel}>Ghost Score</Text>
-                  <Text style={[s.chartValue, { color: C.you }]}>{ghostScore}</Text>
-                </View>
-                <View style={{ overflow: 'hidden' }}>
+                <Text style={s.chartLabel}>Score Progression</Text>
+                <View style={{ overflow: 'hidden', marginTop: S.xs }}>
                   <GhostScoreChart runs={stats.ghostRuns} />
                 </View>
               </View>
-
-              {/* PBs */}
               <GhostPBs allRuns={stats.ghostRuns} since={stats.since} />
             </>
           ) : (
             <>
-              {/* ELO chart for Tag or Bounty */}
               <View style={s.chartCard}>
-                <View style={s.chartHeader}>
-                  <Text style={s.chartLabel}>{statTab} Rating</Text>
-                  <Text style={[s.chartValue, { color: tabColor[statTab] }]}>
-                    {statTab === 'Tag' ? profile.tag_rating : profile.bounty_rating}
-                  </Text>
-                </View>
-                <View style={{ flex: 1, overflow: 'hidden' }}>
+                <Text style={s.chartLabel}>Rating Progression</Text>
+                <View style={{ flex: 1, overflow: 'hidden', marginTop: S.xs }}>
                   <RatingChart
                     history={statTab === 'Tag' ? stats.tagHistory : stats.bountyHistory}
                     color={tabColor[statTab]}
                   />
                 </View>
               </View>
-
-              {/* Km total */}
               <View style={s.kmRow}>
                 <Text style={s.kmValue}>{kmStr}</Text>
                 <View style={s.kmComparison}>
@@ -357,20 +351,19 @@ const s = StyleSheet.create({
   periodTextActive: { color: C.text, fontWeight: '700', fontFamily: F.bodyBold },
   periodUnderline:  { height: 2, backgroundColor: C.text, borderRadius: 1, marginTop: 4 },
 
-  tilesRow:         { flexDirection: 'row', paddingHorizontal: S.lg, gap: S.md, marginBottom: S.lg },
+  tilesRow:         { flexDirection: 'row', paddingHorizontal: S.lg, gap: S.md, marginBottom: S.sm },
   tile:             { flex: 1, backgroundColor: C.card, borderRadius: R.lg, padding: S.md, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: C.border },
   tileNum:          { color: C.text, fontSize: 32, fontFamily: F.display },
   tileLabel:        { color: C.textSub, fontSize: 12 },
 
   statTabs:         { flexDirection: 'row', paddingHorizontal: S.lg, marginBottom: S.md, gap: S.xs },
-  statTab:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: R.md, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  statTab:          { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: R.md, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, gap: 2 },
   statTabActive:    { borderColor: 'transparent' },
-  statTabText:      { color: C.textMuted, fontSize: 14, fontWeight: '600' },
+  statTabText:      { color: C.textMuted, fontSize: 13, fontWeight: '600' },
+  statTabRating:    { color: C.textMuted, fontSize: 16, fontFamily: F.display },
 
   chartCard:        { backgroundColor: C.card, marginHorizontal: S.lg, borderRadius: R.lg, padding: S.md, marginBottom: S.md, borderWidth: 1, borderColor: C.border },
-  chartHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: S.xs },
   chartLabel:       { color: C.textSub, fontSize: 13 },
-  chartValue:       { fontSize: 22, fontFamily: F.display },
 
   pbCard:           { backgroundColor: C.card, marginHorizontal: S.lg, borderRadius: R.lg, paddingHorizontal: S.md, marginBottom: S.md, borderWidth: 1, borderColor: C.border },
 
